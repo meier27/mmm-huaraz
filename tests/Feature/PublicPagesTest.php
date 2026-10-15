@@ -16,6 +16,7 @@ use App\Models\Venue;
 use Database\Seeders\ConventionSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\Cache;
 use PHPUnit\Framework\Attributes\DataProvider;
 use Tests\TestCase;
 
@@ -128,6 +129,14 @@ class PublicPagesTest extends TestCase
         $this->assertSame('Falta 1 día', $settings->countdownLabel(Carbon::parse('2026-10-21')));
         $this->assertSame('La convención está en curso', $settings->countdownLabel(Carbon::parse('2026-10-23')));
         $this->assertSame('La convención ha finalizado', $settings->countdownLabel(Carbon::parse('2026-10-26')));
+    }
+
+    public function test_settings_cached_before_a_migration_do_not_break_the_site(): void
+    {
+        // Caché con el formato anterior (sin columnas nuevas), como tras un despliegue.
+        Cache::forever('event_settings', ['id' => 1, 'theme' => 'Antiguo']);
+
+        $this->get('/')->assertOk()->assertSee('Familia hay esperanza');
     }
 
     public function test_seeder_is_idempotent_and_does_not_overwrite_admin_changes(): void

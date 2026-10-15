@@ -1,6 +1,7 @@
 @props([
     'title' => null,
     'description' => null,
+    'noindex' => false,
 ])
 
 @php
@@ -32,6 +33,9 @@
     <meta property="og:type" content="website">
     <meta property="og:locale" content="es_PE">
     <meta name="theme-color" content="#713218">
+    @if ($noindex)
+        <meta name="robots" content="noindex, nofollow">
+    @endif
     @vite('resources/css/app.css')
     @livewireStyles
 </head>

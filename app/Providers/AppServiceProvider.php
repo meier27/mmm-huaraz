@@ -4,6 +4,7 @@ namespace App\Providers;
 
 use App\Enums\Role;
 use App\Models\EventSetting;
+use App\Models\Reservation;
 use App\Models\User;
 use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Database\Eloquent\Model;
@@ -38,7 +39,7 @@ class AppServiceProvider extends ServiceProvider
         $this->configureGates();
         $this->configureRateLimiting();
 
-        View::composer(['components.layouts.public', 'pages.*'], fn ($view) => $view->with('settings', EventSetting::current()));
+        View::composer(['components.layouts.public', 'pages.*', 'reservations.*'], fn ($view) => $view->with('settings', EventSetting::current()));
     }
 
     private function configureGates(): void
@@ -46,11 +47,15 @@ class AppServiceProvider extends ServiceProvider
         Gate::define('access-admin', fn (User $user) => $user->is_active);
         Gate::define('manage-users', fn (User $user) => $user->isAdmin());
         Gate::define('manage-content', fn (User $user) => $user->hasRole(Role::Admin, Role::Editor));
+        Gate::define('manage-reservations', fn (User $user) => $user->can('viewAny', Reservation::class));
     }
 
     private function configureRateLimiting(): void
     {
         // Límite global por IP; el límite por cuenta lo aplica LoginController.
         RateLimiter::for('login', fn (Request $request) => Limit::perMinute(30)->by($request->ip()));
+
+        // Consulta de reservas por token: dificulta cualquier intento de enumeración.
+        RateLimiter::for('reservation-lookup', fn (Request $request) => Limit::perMinute(30)->by($request->ip()));
     }
 }

@@ -1,8 +1,11 @@
 <?php
 
+use App\Http\Controllers\Admin\ReservationController as AdminReservationController;
 use App\Http\Controllers\Auth\LoginController;
 use App\Http\Controllers\PageController;
+use App\Http\Controllers\ReservationController;
 use App\Livewire\Admin;
+use App\Livewire\ReservationForm;
 use Illuminate\Support\Facades\Route;
 
 Route::controller(PageController::class)->group(function () {
@@ -13,6 +16,13 @@ Route::controller(PageController::class)->group(function () {
     Route::get('hospedaje', 'accommodations')->name('accommodations');
     Route::get('turismo', 'tourism')->name('tourism');
     Route::get('contacto', 'contact')->name('contact');
+});
+
+Route::get('reservas', ReservationForm::class)->name('dishes.index');
+
+Route::middleware('throttle:reservation-lookup')->group(function () {
+    Route::get('reserva/{token}', [ReservationController::class, 'show'])->name('reservations.show');
+    Route::get('reserva/{token}/qr.svg', [ReservationController::class, 'qr'])->name('reservations.qr');
 });
 
 Route::middleware('guest')->group(function () {
@@ -33,6 +43,16 @@ Route::middleware(['auth', 'can:access-admin'])->prefix('admin')->name('admin.')
         Route::get('hospedaje', Admin\AccommodationManager::class)->name('accommodations');
         Route::get('turismo', Admin\TouristPlaceManager::class)->name('tourist-places');
         Route::get('preguntas', Admin\FaqManager::class)->name('faqs');
+        Route::get('banners', Admin\BannerManager::class)->name('banners');
+        Route::get('platos', Admin\DishManager::class)->name('dishes');
+        Route::get('platos/ofertas', Admin\DishOfferingManager::class)->name('dish-offerings');
+    });
+
+    Route::middleware('can:manage-reservations')->group(function () {
+        Route::get('reservas', Admin\ReservationIndex::class)->name('reservations');
+        Route::get('reservas/{reservation}', [AdminReservationController::class, 'show'])
+            ->middleware('can:view,reservation')
+            ->name('reservations.show');
     });
 
     Route::middleware('can:manage-users')->group(function () {

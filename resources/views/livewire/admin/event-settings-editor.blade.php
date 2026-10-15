@@ -17,6 +17,14 @@
         <x-admin.input label="WhatsApp" model="form.contact_whatsapp" type="tel" hint="Con código de país, p. ej. +51 …" />
         <x-admin.input label="Correo electrónico" model="form.contact_email" type="email" class="sm:col-span-2" />
 
+        <h3 class="pt-2 font-display font-bold text-earth sm:col-span-2">Reservas de comida</h3>
+        <div class="sm:col-span-2">
+            <x-admin.checkbox label="Reservas abiertas al público" model="form.reservations_open" />
+            <p class="text-xs text-muted">Ábrelas solo cuando el menú, los precios y la forma de pago estén confirmados.</p>
+        </div>
+        <x-admin.textarea label="Instrucciones de pago y recojo" model="form.reservation_instructions" rows="3" class="sm:col-span-2"
+                          hint="Se muestran al reservar y en la página del QR. Usa solo métodos oficiales." />
+
         <h3 class="pt-2 font-display font-bold text-earth sm:col-span-2">Redes sociales (enlaces https)</h3>
         <x-admin.input label="Facebook" model="form.facebook_url" type="url" />
         <x-admin.input label="Instagram" model="form.instagram_url" type="url" />

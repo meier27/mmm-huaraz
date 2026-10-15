@@ -4,7 +4,10 @@ namespace App\Http\Controllers;
 
 use App\Enums\VenueKind;
 use App\Models\Accommodation;
+use App\Models\Banner;
+use App\Models\DishOffering;
 use App\Models\DonationMethod;
+use App\Models\EventSetting;
 use App\Models\Faq;
 use App\Models\ProgramDay;
 use App\Models\TouristPlace;
@@ -19,8 +22,21 @@ class PageController extends Controller
 {
     public function home(): View
     {
+        $nextDay = ProgramDay::query()
+            ->whereDate('date', '>=', today())
+            ->whereHas('items', fn ($q) => $q->published())
+            ->with(['items' => fn (HasMany $q) => $q->published()->limit(5)])
+            ->orderBy('date')
+            ->first();
+
         return view('pages.home', [
+            'banners' => Banner::query()->published()->ordered()->get(),
             'mainVenue' => Venue::query()->published()->where('kind', VenueKind::Main)->ordered()->first(),
+            'nextDay' => $nextDay,
+            'featuredOfferings' => EventSetting::current()->reservations_open
+                ? DishOffering::query()->bookable()->with('dish')->orderBy('serve_date')->orderBy('slot_start')->get()->unique('dish_id')->take(3)
+                : collect(),
+            'places' => TouristPlace::query()->published()->ordered()->limit(3)->get(),
             'faqs' => Faq::query()->published()->ordered()->limit(4)->get(),
         ]);
     }

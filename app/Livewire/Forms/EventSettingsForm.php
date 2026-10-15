@@ -32,6 +32,10 @@ class EventSettingsForm extends ContentForm
 
     public ?string $tiktok_url = '';
 
+    public bool $reservations_open = false;
+
+    public ?string $reservation_instructions = '';
+
     protected function rules(): array
     {
         $phone = ['nullable', 'string', 'max:30', 'regex:/^[0-9+\s()-]+$/'];
@@ -52,6 +56,8 @@ class EventSettingsForm extends ContentForm
             'instagram_url' => $url,
             'youtube_url' => $url,
             'tiktok_url' => $url,
+            'reservations_open' => ['boolean'],
+            'reservation_instructions' => ['nullable', 'string', 'max:2000'],
         ];
     }
 }

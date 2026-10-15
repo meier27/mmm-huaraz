@@ -23,7 +23,9 @@ trait HasPublicImage
     {
         $path = $this->getAttribute($this->imageColumn);
 
-        return $path ? Storage::disk('public')->url($path) : null;
+        // asset() usa el host de la petición actual: funciona aunque APP_URL no coincida
+        // (p. ej. XAMPP en un subdirectorio).
+        return $path ? asset('storage/'.$path) : null;
     }
 
     public function replaceImage(UploadedFile $file): void

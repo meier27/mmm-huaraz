@@ -3,7 +3,11 @@
 @php
     $adminNavigation = auth()->check() ? collect([
         ['route' => 'admin.dashboard', 'label' => 'Inicio', 'can' => 'access-admin'],
+        ['route' => 'admin.reservations', 'label' => 'Reservas', 'can' => 'manage-reservations'],
+        ['route' => 'admin.dish-offerings', 'label' => 'Ofertas', 'can' => 'manage-content'],
+        ['route' => 'admin.dishes', 'label' => 'Platos', 'can' => 'manage-content'],
         ['route' => 'admin.settings', 'label' => 'Convención', 'can' => 'manage-content'],
+        ['route' => 'admin.banners', 'label' => 'Banners', 'can' => 'manage-content'],
         ['route' => 'admin.program', 'label' => 'Programa', 'can' => 'manage-content'],
         ['route' => 'admin.program-days', 'label' => 'Días', 'can' => 'manage-content'],
         ['route' => 'admin.venues', 'label' => 'Sedes', 'can' => 'manage-content'],

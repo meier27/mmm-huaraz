@@ -17,6 +17,7 @@ class EventSetting extends Model
         'organization', 'name', 'theme', 'city', 'starts_on', 'ends_on', 'summary',
         'contact_phone', 'contact_whatsapp', 'contact_email',
         'facebook_url', 'instagram_url', 'youtube_url', 'tiktok_url',
+        'reservations_open', 'reservation_instructions',
     ];
 
     protected function casts(): array
@@ -24,12 +25,22 @@ class EventSetting extends Model
         return [
             'starts_on' => 'date:Y-m-d',
             'ends_on' => 'date:Y-m-d',
+            'reservations_open' => 'boolean',
         ];
     }
 
     protected static function booted(): void
     {
-        static::saved(fn () => Cache::forget(self::CACHE_KEY));
+        static::saved(fn (self $setting) => Cache::forget($setting->cacheKey()));
+    }
+
+    /**
+     * La clave incluye la lista de columnas: si una migración añade campos,
+     * la caché anterior (sin esos campos) se ignora automáticamente.
+     */
+    private function cacheKey(): string
+    {
+        return self::CACHE_KEY.':'.md5(implode(',', $this->getFillable()));
     }
 
     /**
@@ -38,7 +49,7 @@ class EventSetting extends Model
      */
     public static function current(): self
     {
-        $attributes = Cache::rememberForever(self::CACHE_KEY, fn () => static::query()->first()?->getAttributes());
+        $attributes = Cache::rememberForever((new static)->cacheKey(), fn () => static::query()->first()?->getAttributes());
 
         if ($attributes === null) {
             return new static(static::defaults());

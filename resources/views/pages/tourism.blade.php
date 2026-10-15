@@ -12,7 +12,7 @@
                     <li class="flex flex-col overflow-hidden rounded-card border border-line bg-white">
                         @if ($place->imageUrl())
                             <img src="{{ $place->imageUrl() }}" alt="{{ $place->image_alt ?? '' }}" width="800" height="600"
-                                 class="aspect-[4/3] w-full object-cover" loading="lazy" decoding="async">
+                                 class="aspect-4/3 w-full object-cover" loading="lazy" decoding="async">
                         @endif
                         <div class="flex flex-1 flex-col p-5">
                             <h2 class="text-xl font-bold">{{ $place->name }}</h2>

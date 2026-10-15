@@ -36,6 +36,8 @@ class EventSettingsForm extends ContentForm
 
     public ?string $reservation_instructions = '';
 
+    public int|string|null $deposit_min_percent = '';
+
     protected function rules(): array
     {
         $phone = ['nullable', 'string', 'max:30', 'regex:/^[0-9+\s()-]+$/'];
@@ -58,6 +60,7 @@ class EventSettingsForm extends ContentForm
             'tiktok_url' => $url,
             'reservations_open' => ['boolean'],
             'reservation_instructions' => ['nullable', 'string', 'max:2000'],
+            'deposit_min_percent' => ['nullable', 'integer', 'min:1', 'max:100'],
         ];
     }
 }

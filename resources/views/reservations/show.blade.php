@@ -18,7 +18,13 @@
                 </section>
 
                 <div class="space-y-6">
+                    @if (session('reservation-notice'))
+                        <x-ui.alert type="success">{{ session('reservation-notice') }}</x-ui.alert>
+                    @endif
+
                     <livewire:reservation-status-panel :reservation-id="$reservation->id" />
+
+                    <livewire:reservation-customer-actions :token="$token" />
 
                     <section class="rounded-card bg-white p-5 shadow-card" aria-labelledby="detalle">
                         <h2 id="detalle" class="text-lg font-bold">Detalle</h2>
@@ -46,12 +52,15 @@
                         @endif
                     </section>
 
-                    @if ($settings->reservation_instructions && ! $reservation->isPaid() && ! $reservation->isCancelled())
+                    @unless ($reservation->isClosed())
                         <section class="rounded-card border border-brand/40 bg-white p-5" aria-labelledby="como-pagar">
-                            <h2 id="como-pagar" class="text-lg font-bold">Cómo completar tu reserva</h2>
-                            <p class="mt-2 text-sm whitespace-pre-line">{{ $settings->reservation_instructions }}</p>
+                            <h2 id="como-pagar" class="text-lg font-bold">Cómo funciona</h2>
+                            <div class="mt-3">@include('reservations.partials.rules')</div>
+                            @if ($settings->reservation_instructions && ! $reservation->isFullyPaid())
+                                <p class="mt-4 rounded-control bg-cream p-3 text-sm whitespace-pre-line">{{ $settings->reservation_instructions }}</p>
+                            @endif
                         </section>
-                    @endif
+                    @endunless
                 </div>
             </div>
         </div>

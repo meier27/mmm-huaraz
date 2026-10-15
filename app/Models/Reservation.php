@@ -3,13 +3,13 @@
 namespace App\Models;
 
 use App\Enums\DeliveryStatus;
-use App\Enums\PaymentMethod;
 use App\Enums\PaymentStatus;
 use App\Enums\ReservationStatus;
 use App\Models\Concerns\Auditable;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Support\Carbon;
 
 /**
  * Los cambios de estado se hacen exclusivamente a través de ReservationService.
@@ -27,14 +27,15 @@ class Reservation extends Model
         return [
             'token_encrypted' => 'encrypted',
             'total' => 'decimal:2',
+            'amount_paid' => 'decimal:2',
             'status' => ReservationStatus::class,
             'payment_status' => PaymentStatus::class,
             'delivery_status' => DeliveryStatus::class,
-            'payment_method' => PaymentMethod::class,
-            'payment_verified_at' => 'datetime',
             'delivered_at' => 'datetime',
+            'donated_at' => 'datetime',
             'cancelled_at' => 'datetime',
             'expires_at' => 'datetime',
+            'changed_at' => 'datetime',
         ];
     }
 
@@ -58,14 +59,19 @@ class Reservation extends Model
         return $this->hasMany(ReservationItem::class);
     }
 
-    public function paymentVerifier(): BelongsTo
+    public function payments(): HasMany
     {
-        return $this->belongsTo(User::class, 'payment_verified_by');
+        return $this->hasMany(ReservationPayment::class)->orderBy('id');
     }
 
     public function deliverer(): BelongsTo
     {
         return $this->belongsTo(User::class, 'delivered_by');
+    }
+
+    public function donor(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'donated_by');
     }
 
     public function canceller(): BelongsTo
@@ -78,14 +84,59 @@ class Reservation extends Model
         return $this->status === ReservationStatus::Cancelled;
     }
 
-    public function isPaid(): bool
+    public function hasPayments(): bool
     {
-        return $this->payment_status === PaymentStatus::Verified;
+        return bccomp((string) $this->amount_paid, '0', 2) > 0;
+    }
+
+    public function isFullyPaid(): bool
+    {
+        return $this->payment_status === PaymentStatus::Paid;
     }
 
     public function isDelivered(): bool
     {
         return $this->delivery_status === DeliveryStatus::Delivered;
+    }
+
+    public function isDonated(): bool
+    {
+        return $this->delivery_status === DeliveryStatus::Donated;
+    }
+
+    /** Pedido cerrado: ya no admite pagos, cambios ni entregas. */
+    public function isClosed(): bool
+    {
+        return $this->isCancelled() || $this->isDelivered() || $this->isDonated();
+    }
+
+    public function balance(): string
+    {
+        return bcsub((string) $this->total, (string) $this->amount_paid, 2);
+    }
+
+    /** Inicio del primer horario reservado (requiere items.offering cargados o los consulta). */
+    public function firstSlotStart(): ?Carbon
+    {
+        return $this->items->map(fn (ReservationItem $item) => $item->offering->startsAt())->min();
+    }
+
+    public function lastSlotEnd(): ?Carbon
+    {
+        return $this->items->map(fn (ReservationItem $item) => $item->offering->endsAt())->max();
+    }
+
+    /** Límite para que el cliente cambie o cancele su pedido. */
+    public function changeDeadline(): ?Carbon
+    {
+        return $this->firstSlotStart()?->copy()->subHours(config('reservations.change_deadline_hours'));
+    }
+
+    public function customerCanChange(?Carbon $now = null): bool
+    {
+        $deadline = $this->changeDeadline();
+
+        return ! $this->isClosed() && $deadline !== null && ($now ?? now())->lt($deadline);
     }
 
     public function maskedPhone(): string

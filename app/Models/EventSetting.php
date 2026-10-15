@@ -17,7 +17,7 @@ class EventSetting extends Model
         'organization', 'name', 'theme', 'city', 'starts_on', 'ends_on', 'summary',
         'contact_phone', 'contact_whatsapp', 'contact_email',
         'facebook_url', 'instagram_url', 'youtube_url', 'tiktok_url',
-        'reservations_open', 'reservation_instructions',
+        'reservations_open', 'reservation_instructions', 'deposit_min_percent',
     ];
 
     protected function casts(): array
@@ -26,7 +26,24 @@ class EventSetting extends Model
             'starts_on' => 'date:Y-m-d',
             'ends_on' => 'date:Y-m-d',
             'reservations_open' => 'boolean',
+            'deposit_min_percent' => 'integer',
         ];
+    }
+
+    /**
+     * Adelanto mínimo exigido para un total dado (0.00 si no hay mínimo configurado).
+     */
+    public function minimumDeposit(string $total): string
+    {
+        if (! $this->deposit_min_percent) {
+            return '0.00';
+        }
+
+        // Redondeo hacia arriba al céntimo.
+        $raw = bcdiv(bcmul($total, (string) $this->deposit_min_percent, 4), '100', 4);
+        $cents = (int) ceil((float) bcmul($raw, '100', 4));
+
+        return number_format($cents / 100, 2, '.', '');
     }
 
     protected static function booted(): void

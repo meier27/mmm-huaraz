@@ -8,9 +8,12 @@ use App\Livewire\Admin\DishManager;
 use App\Livewire\Admin\DishOfferingManager;
 use App\Livewire\Admin\ReservationIndex;
 use App\Models\Banner;
+use App\Models\Dish;
 use App\Models\DishOffering;
+use App\Models\EventSetting;
 use App\Models\User;
 use App\Services\ReservationService;
+use Database\Seeders\ConventionSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;
@@ -118,7 +121,7 @@ class ReservationAdminTest extends TestCase
             ->set('form.price', '10')
             ->set('form.stock', 5)
             ->call('save')
-            ->assertHasErrors(['form.slot_start' => 'unique']);
+            ->assertHasErrors('form.slot_start');
     }
 
     public function test_banner_is_created_with_image_and_shown_in_the_home_carousel(): void
@@ -161,6 +164,27 @@ class ReservationAdminTest extends TestCase
             ->assertHasErrors(['form.image', 'form.cta_url']);
 
         $this->assertSame(0, Banner::count());
+    }
+
+    public function test_demo_content_is_created_with_test_images_and_removed_cleanly(): void
+    {
+        Storage::fake('public');
+        $this->seed(ConventionSeeder::class);
+
+        $this->artisan('app:demo-content')->assertSuccessful();
+
+        $this->assertSame(3, Banner::where('title', 'like', '[Ejemplo]%')->count());
+        $this->assertSame(3, Dish::where('name', 'like', '[Ejemplo]%')->count());
+        $this->assertSame(24, DishOffering::count()); // 3 platos × 4 días × almuerzo y cena
+        $this->assertCount(6, Storage::disk('public')->allFiles());
+        $this->assertFalse(EventSetting::current()->reservations_open); // no abre reservas por su cuenta
+
+        $this->artisan('app:demo-content')->assertFailed(); // no duplica
+
+        $this->artisan('app:demo-content', ['--remove' => true])->assertSuccessful();
+        $this->assertSame(0, Banner::count());
+        $this->assertSame(0, DishOffering::count());
+        $this->assertSame([], Storage::disk('public')->allFiles());
     }
 
     public function test_home_shows_default_hero_without_banners_and_featured_dishes_only_when_open(): void

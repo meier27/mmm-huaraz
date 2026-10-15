@@ -4,7 +4,7 @@ namespace App\Livewire\Forms;
 
 use App\Models\DishOffering;
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Validation\Rule;
+use Illuminate\Support\Carbon;
 
 class DishOfferingForm extends ContentForm
 {
@@ -32,7 +32,19 @@ class DishOfferingForm extends ContentForm
             'serve_date' => ['required', 'date_format:Y-m-d'],
             'slot_start' => [
                 'required', 'date_format:H:i,H:i:s',
-                Rule::unique('dish_offerings')->where(fn ($q) => $q->where('dish_id', $this->dish_id)->where('serve_date', $this->serve_date))->ignore($editingId),
+                // Las horas se guardan como H:i:s: se compara con el valor normalizado.
+                function (string $attribute, mixed $value, \Closure $fail) use ($editingId) {
+                    $exists = DishOffering::query()
+                        ->where('dish_id', $this->dish_id)
+                        ->whereDate('serve_date', $this->serve_date)
+                        ->where('slot_start', Carbon::parse($value)->format('H:i:s'))
+                        ->when($editingId, fn ($q) => $q->whereKeyNot($editingId))
+                        ->exists();
+
+                    if ($exists) {
+                        $fail('Ese plato ya tiene una oferta en esa fecha y hora.');
+                    }
+                },
             ],
             'slot_end' => ['nullable', 'date_format:H:i,H:i:s', 'after:slot_start'],
             'price' => ['required', 'decimal:0,2', 'min:0.10', 'max:9999.99'],
@@ -46,7 +58,6 @@ class DishOfferingForm extends ContentForm
     {
         return [
             'stock.min' => 'El stock no puede ser menor que las porciones ya reservadas (:min).',
-            'slot_start.unique' => 'Ese plato ya tiene una oferta en esa fecha y hora.',
         ];
     }
 

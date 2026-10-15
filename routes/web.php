@@ -5,6 +5,7 @@ use App\Http\Controllers\Auth\LoginController;
 use App\Http\Controllers\PageController;
 use App\Http\Controllers\ReservationController;
 use App\Livewire\Admin;
+use App\Livewire\ReservationChangeForm;
 use App\Livewire\ReservationForm;
 use Illuminate\Support\Facades\Route;
 
@@ -23,6 +24,7 @@ Route::get('reservas', ReservationForm::class)->name('dishes.index');
 Route::middleware('throttle:reservation-lookup')->group(function () {
     Route::get('reserva/{token}', [ReservationController::class, 'show'])->name('reservations.show');
     Route::get('reserva/{token}/qr.svg', [ReservationController::class, 'qr'])->name('reservations.qr');
+    Route::get('reserva/{token}/cambiar', ReservationChangeForm::class)->name('reservations.change');
 });
 
 Route::middleware('guest')->group(function () {

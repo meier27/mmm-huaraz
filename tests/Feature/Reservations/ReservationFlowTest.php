@@ -4,6 +4,8 @@ namespace Tests\Feature\Reservations;
 
 use App\Enums\PaymentMethod;
 use App\Enums\Role;
+use App\Livewire\ReservationChangeForm;
+use App\Livewire\ReservationCustomerActions;
 use App\Livewire\ReservationForm;
 use App\Livewire\ReservationStatusPanel;
 use App\Models\Reservation;
@@ -74,7 +76,7 @@ class ReservationFlowTest extends TestCase
             ->assertHeader('X-Robots-Tag', 'noindex, nofollow')
             ->assertSee($reservation->code)
             ->assertSee('<svg', false)
-            ->assertSee('Pendiente de pago')
+            ->assertSee('Pendiente de adelanto')
             ->assertSee('•••••••123') // celular enmascarado
             ->assertDontSee('900 000 123');
     }
@@ -145,45 +147,74 @@ class ReservationFlowTest extends TestCase
             ->assertForbidden();
     }
 
-    public function test_cashier_scanning_the_qr_can_verify_payment(): void
+    public function test_cashier_scanning_the_qr_registers_advance_then_balance(): void
     {
-        $reservation = $this->reservation();
+        $reservation = $this->reservation(2); // 2 × 12.50 = 25.00
         $cashier = User::factory()->role(Role::Cashier)->create();
 
-        $this->actingAs($cashier)->get($reservation->publicUrl())->assertSee('Acciones del personal')->assertSee('Verificar pago');
+        $this->actingAs($cashier)->get($reservation->publicUrl())->assertSee('Acciones del personal')->assertSee('Registrar adelanto');
 
-        Livewire::actingAs($cashier)->test(ReservationStatusPanel::class, ['reservationId' => $reservation->id])
+        $panel = Livewire::actingAs($cashier)->test(ReservationStatusPanel::class, ['reservationId' => $reservation->id])
+            ->assertSet('paymentAmount', '25.00')
+            ->set('paymentAmount', '10')
             ->set('paymentMethod', 'yape')
             ->set('paymentReference', 'OP-987')
-            ->call('verifyPayment')
+            ->call('registerPayment')
             ->assertHasNoErrors()
-            ->assertSee('Pago verificado');
+            ->assertSee('Pago registrado')
+            ->assertSet('paymentAmount', '15.00')
+            ->assertSee('Cobrar saldo');
 
-        $this->assertTrue($reservation->fresh()->isPaid());
-        $this->assertSame(PaymentMethod::Yape, $reservation->fresh()->payment_method);
+        $this->assertSame('10.00', $reservation->fresh()->amount_paid);
+        $this->assertSame(PaymentMethod::Yape, $reservation->payments()->first()->method);
+
+        $panel->call('deliver')->assertHasErrors('action'); // falta el saldo
+
+        $panel->set('paymentMethod', 'cash')->call('registerPayment')->assertHasNoErrors();
+        $panel->call('deliver')->assertHasNoErrors();
+
+        $this->assertTrue($reservation->fresh()->isDelivered());
     }
 
-    public function test_delivery_role_cannot_verify_payments_or_cancel(): void
+    public function test_payment_amount_is_validated(): void
+    {
+        $reservation = $this->reservation();
+
+        Livewire::actingAs(User::factory()->role(Role::Cashier)->create())
+            ->test(ReservationStatusPanel::class, ['reservationId' => $reservation->id])
+            ->set('paymentAmount', 'abc')
+            ->call('registerPayment')
+            ->assertHasErrors('paymentAmount')
+            ->set('paymentAmount', '999')
+            ->call('registerPayment')
+            ->assertHasErrors('action'); // supera el saldo
+
+        $this->assertSame('0.00', $reservation->fresh()->amount_paid);
+    }
+
+    public function test_delivery_role_cannot_register_payments_donate_or_cancel(): void
     {
         $reservation = $this->reservation();
         $delivery = User::factory()->role(Role::Delivery)->create();
 
-        Livewire::actingAs($delivery)->test(ReservationStatusPanel::class, ['reservationId' => $reservation->id])
-            ->call('verifyPayment')
-            ->assertForbidden();
+        foreach (['registerPayment', 'markDonated'] as $action) {
+            Livewire::actingAs($delivery)->test(ReservationStatusPanel::class, ['reservationId' => $reservation->id])
+                ->call($action)
+                ->assertForbidden();
+        }
 
         Livewire::actingAs($delivery)->test(ReservationStatusPanel::class, ['reservationId' => $reservation->id])
             ->set('cancelReason', 'No vino')
             ->call('cancel')
             ->assertForbidden();
 
-        $this->assertFalse($reservation->fresh()->isPaid());
+        $this->assertFalse($reservation->fresh()->hasPayments());
     }
 
     public function test_delivery_role_registers_delivery_once_and_sees_clear_error_on_repeat(): void
     {
         $reservation = $this->reservation();
-        app(ReservationService::class)->verifyPayment($reservation, User::factory()->create(), PaymentMethod::Cash, null);
+        app(ReservationService::class)->registerPayment($reservation, User::factory()->create(), $reservation->total, PaymentMethod::Cash, null);
         $delivery = User::factory()->role(Role::Delivery)->create();
 
         $panel = Livewire::actingAs($delivery)->test(ReservationStatusPanel::class, ['reservationId' => $reservation->id])
@@ -201,14 +232,14 @@ class ReservationFlowTest extends TestCase
 
         Livewire::actingAs(User::factory()->role(Role::Editor)->create())
             ->test(ReservationStatusPanel::class, ['reservationId' => $reservation->id])
-            ->call('verifyPayment')
+            ->call('registerPayment')
             ->assertForbidden();
     }
 
-    public function test_only_admin_can_cancel_a_paid_reservation(): void
+    public function test_only_admin_can_cancel_a_reservation_with_payments(): void
     {
         $reservation = $this->reservation();
-        app(ReservationService::class)->verifyPayment($reservation, User::factory()->create(), PaymentMethod::Cash, null);
+        app(ReservationService::class)->registerPayment($reservation, User::factory()->create(), '5.00', PaymentMethod::Cash, null);
 
         Livewire::actingAs(User::factory()->role(Role::Cashier)->create())
             ->test(ReservationStatusPanel::class, ['reservationId' => $reservation->id])
@@ -223,6 +254,100 @@ class ReservationFlowTest extends TestCase
             ->assertHasNoErrors();
 
         $this->assertTrue($reservation->fresh()->isCancelled());
+    }
+
+    public function test_cashier_marks_unpicked_order_as_donation_after_deadline(): void
+    {
+        $reservation = $this->reservation();
+        app(ReservationService::class)->registerPayment($reservation, User::factory()->create(), '5.00', PaymentMethod::Cash, null);
+        $cashier = User::factory()->role(Role::Cashier)->create();
+
+        $this->actingAs($cashier)->get($reservation->publicUrl())->assertDontSee('Registrar como donación');
+
+        $this->travelTo($reservation->load('items.offering')->changeDeadline()->addMinute());
+
+        $this->actingAs($cashier)->get($reservation->publicUrl())->assertSee('Registrar como donación');
+        Livewire::actingAs($cashier)->test(ReservationStatusPanel::class, ['reservationId' => $reservation->id])
+            ->call('markDonated')
+            ->assertHasNoErrors()
+            ->assertSee('Donado (no recogido)');
+    }
+
+    // ---------- Autoservicio del cliente ----------
+
+    public function test_customer_sees_change_option_and_deadline_on_qr_page(): void
+    {
+        $reservation = $this->reservation();
+
+        $this->get($reservation->publicUrl())
+            ->assertSee('¿No podrás recogerlo?')
+            ->assertSee('Cambiar mi pedido')
+            ->assertSee('Cancelar reserva')
+            ->assertSee('5 horas antes');
+    }
+
+    public function test_customer_changes_order_through_the_change_page(): void
+    {
+        $reservation = $this->reservation();
+        $dinner = $this->offering(['slot_start' => '19:00', 'slot_end' => '21:00', 'price' => '14.00'], ['name' => 'Cena de prueba']);
+        $token = $reservation->token_encrypted;
+        $original = $reservation->items()->first()->dish_offering_id;
+
+        $this->get(route('reservations.change', $token))->assertOk()->assertSee('Cena de prueba')->assertSee('Tu pedido actual');
+
+        Livewire::test(ReservationChangeForm::class, ['token' => $token])
+            ->assertSet("quantities.$original", 1)
+            ->set("quantities.$original", 0)
+            ->set("quantities.{$dinner->id}", 1)
+            ->call('save')
+            ->assertHasNoErrors()
+            ->assertRedirect(route('reservations.show', $token));
+
+        $this->assertSame('14.00', $reservation->fresh()->total);
+        $this->get($reservation->publicUrl())->assertSee('Cena de prueba');
+    }
+
+    public function test_change_page_redirects_after_deadline(): void
+    {
+        $reservation = $this->reservation();
+        $this->travelTo($reservation->load('items.offering')->changeDeadline());
+
+        Livewire::test(ReservationChangeForm::class, ['token' => $reservation->token_encrypted])
+            ->assertRedirect(route('reservations.show', $reservation->token_encrypted));
+
+        $this->get($reservation->publicUrl())->assertSee('El plazo para cambiar este pedido terminó')->assertDontSee('Cambiar mi pedido');
+    }
+
+    public function test_change_page_rejects_invalid_tokens(): void
+    {
+        $this->get('/reserva/'.str_repeat('b', 48).'/cambiar')->assertNotFound();
+    }
+
+    public function test_customer_cancels_unpaid_reservation_from_qr_page(): void
+    {
+        $reservation = $this->reservation(3);
+        $offering = $reservation->items()->first()->offering;
+
+        Livewire::test(ReservationCustomerActions::class, ['token' => $reservation->token_encrypted])
+            ->call('cancel')
+            ->assertHasNoErrors();
+
+        $this->assertTrue($reservation->fresh()->isCancelled());
+        $this->assertSame(0, $offering->fresh()->reserved);
+    }
+
+    public function test_customer_cannot_cancel_after_paying(): void
+    {
+        $reservation = $this->reservation();
+        app(ReservationService::class)->registerPayment($reservation, User::factory()->create(), '5.00', PaymentMethod::Cash, null);
+
+        $this->get($reservation->publicUrl())->assertSee('Cambiar mi pedido')->assertDontSee('Cancelar reserva');
+
+        Livewire::test(ReservationCustomerActions::class, ['token' => $reservation->token_encrypted])
+            ->call('cancel')
+            ->assertHasErrors('customer');
+
+        $this->assertFalse($reservation->fresh()->isCancelled());
     }
 
     public function test_reservation_id_in_the_panel_cannot_be_tampered(): void

@@ -21,23 +21,31 @@ class ReservationStatusPanel extends Component
     #[Locked]
     public int $reservationId;
 
+    public string $paymentAmount = '';
+
     public string $paymentMethod = 'cash';
 
     public string $paymentReference = '';
 
     public string $cancelReason = '';
 
-    public function verifyPayment(ReservationService $service): void
+    public function mount(): void
+    {
+        $this->paymentAmount = $this->reservation()->balance();
+    }
+
+    public function registerPayment(ReservationService $service): void
     {
         $reservation = $this->reservation();
-        $this->authorize('verifyPayment', $reservation);
+        $this->authorize('registerPayment', $reservation);
 
         $data = $this->validate([
+            'paymentAmount' => ['required', 'decimal:0,2', 'min:0.01', 'max:99999.99'],
             'paymentMethod' => ['required', Rule::enum(PaymentMethod::class)],
             'paymentReference' => ['nullable', 'string', 'max:100'],
-        ], [], ['paymentMethod' => 'método de pago', 'paymentReference' => 'referencia']);
+        ], [], ['paymentAmount' => 'monto', 'paymentMethod' => 'método de pago', 'paymentReference' => 'referencia']);
 
-        $this->run(fn () => $service->verifyPayment($reservation, auth()->user(), PaymentMethod::from($data['paymentMethod']), $data['paymentReference']), 'Pago verificado.');
+        $this->run(fn () => $service->registerPayment($reservation, auth()->user(), (string) $data['paymentAmount'], PaymentMethod::from($data['paymentMethod']), $data['paymentReference']), 'Pago registrado.');
     }
 
     public function deliver(ReservationService $service): void
@@ -46,6 +54,14 @@ class ReservationStatusPanel extends Component
         $this->authorize('deliver', $reservation);
 
         $this->run(fn () => $service->deliver($reservation, auth()->user()), 'Entrega registrada.');
+    }
+
+    public function markDonated(ReservationService $service): void
+    {
+        $reservation = $this->reservation();
+        $this->authorize('markDonated', $reservation);
+
+        $this->run(fn () => $service->markDonated($reservation, auth()->user()), 'Pedido registrado como donación.');
     }
 
     public function cancel(ReservationService $service): void
@@ -61,7 +77,7 @@ class ReservationStatusPanel extends Component
     public function render(): View
     {
         return view('livewire.reservation-status-panel', [
-            'reservation' => $this->reservation()->load(['paymentVerifier:id,name', 'deliverer:id,name', 'canceller:id,name']),
+            'reservation' => $this->reservation()->load(['items.offering', 'payments.receiver:id,name', 'deliverer:id,name', 'donor:id,name', 'canceller:id,name']),
             'methods' => PaymentMethod::cases(),
         ]);
     }
@@ -76,6 +92,7 @@ class ReservationStatusPanel extends Component
         try {
             $action();
             $this->reset('paymentReference', 'cancelReason');
+            $this->paymentAmount = $this->reservation()->balance();
             session()->flash('reservation-status', $success);
         } catch (ReservationException $e) {
             $this->addError('action', $e->getMessage());

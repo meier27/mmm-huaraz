@@ -8,6 +8,7 @@
         <x-ui.alert type="error" class="mt-3">{{ $message }}</x-ui.alert>
     @enderror
 
+    {{-- Usar siempre la forma de bloque: mezclarla con la forma en línea rompe la compilación de Blade. --}}
     @php
         $badge = 'inline-flex items-center gap-1 rounded-full px-3 py-1 text-sm font-semibold';
     @endphp
@@ -16,40 +17,68 @@
             {{ $reservation->status->label() }}
         </span>
         @unless ($reservation->isCancelled())
-            @if ($reservation->isPaid())
-                <span class="{{ $badge }} bg-green-100 text-success"><x-ui.icon name="check" class="size-4" /> {{ $reservation->payment_status->label() }}</span>
+            @if ($reservation->hasPayments())
+                <span @class([$badge, 'bg-green-100 text-success' => $reservation->isFullyPaid(), 'bg-sky-100 text-navy' => ! $reservation->isFullyPaid()])>
+                    @if ($reservation->isFullyPaid())<x-ui.icon name="check" class="size-4" />@endif {{ $reservation->payment_status->label() }}
+                </span>
             @endif
-            <span @class([$badge, 'bg-green-100 text-success' => $reservation->isDelivered(), 'bg-stone-100 text-muted' => ! $reservation->isDelivered()])>
+            <span @class([$badge, 'bg-green-100 text-success' => $reservation->isDelivered(), 'bg-violet-100 text-violet-800' => $reservation->isDonated(), 'bg-stone-100 text-muted' => $reservation->delivery_status->value === 'pending'])>
                 @if ($reservation->isDelivered())<x-ui.icon name="check" class="size-4" />@endif {{ $reservation->delivery_status->label() }}
             </span>
         @endunless
     </div>
 
+    @unless ($reservation->isCancelled())
+        <dl class="mt-4 grid grid-cols-3 gap-2 rounded-control bg-stone-50 p-3 text-center">
+            <div><dt class="text-xs text-muted">Total</dt><dd class="font-bold tabular-nums">S/ {{ number_format((float) $reservation->total, 2) }}</dd></div>
+            <div><dt class="text-xs text-muted">Pagado</dt><dd class="font-bold tabular-nums text-success">S/ {{ number_format((float) $reservation->amount_paid, 2) }}</dd></div>
+            <div><dt class="text-xs text-muted">Saldo</dt><dd @class(['font-bold tabular-nums', 'text-warning' => (float) $reservation->balance() > 0])>S/ {{ number_format((float) $reservation->balance(), 2) }}</dd></div>
+        </dl>
+    @endunless
+
     @if ($reservation->isCancelled())
         <p class="mt-3 text-sm text-muted">Motivo: {{ $reservation->cancellation_reason }}</p>
-    @elseif (! $reservation->isPaid() && $reservation->expires_at)
+    @elseif ($reservation->isDonated())
+        <p class="mt-3 text-sm text-muted">El pedido no se recogió a tiempo y se destinó a donación.</p>
+    @elseif (! $reservation->hasPayments() && $reservation->expires_at)
         <p class="mt-3 text-sm text-muted">
-            Si el pago no se verifica antes del {{ $reservation->expires_at->translatedFormat('j \d\e F, H:i') }}, la reserva se liberará automáticamente.
+            Paga tu adelanto antes del {{ $reservation->expires_at->translatedFormat('j \d\e F, H:i') }}; si no, la reserva se liberará automáticamente.
         </p>
     @endif
 
     @auth
-        @php
-            $canPay = auth()->user()->can('verifyPayment', $reservation) && ! $reservation->isPaid() && ! $reservation->isCancelled();
-            $canDeliver = auth()->user()->can('deliver', $reservation) && $reservation->isPaid() && ! $reservation->isDelivered() && ! $reservation->isCancelled();
-            $canCancel = auth()->user()->can('cancel', $reservation) && ! $reservation->isDelivered() && ! $reservation->isCancelled();
-        @endphp
-
         @if (auth()->user()->can('view', $reservation))
+            @php
+                $user = auth()->user();
+                $canPay = $user->can('registerPayment', $reservation) && ! $reservation->isClosed() && (float) $reservation->balance() > 0;
+                $canDeliver = $user->can('deliver', $reservation) && ! $reservation->isClosed();
+                $canDonate = $user->can('markDonated', $reservation) && ! $reservation->isClosed() && $reservation->hasPayments() && ! $reservation->customerCanChange();
+                $canCancel = $user->can('cancel', $reservation) && ! $reservation->isClosed();
+            @endphp
+
             <div class="mt-5 space-y-4 border-t border-line pt-4">
-                <p class="text-xs font-semibold tracking-wide text-muted uppercase">Acciones del personal · {{ auth()->user()->role->label() }}</p>
+                <p class="text-xs font-semibold tracking-wide text-muted uppercase">Acciones del personal · {{ $user->role->label() }}</p>
+
+                @if ($reservation->payments->isNotEmpty())
+                    <div>
+                        <p class="text-sm font-semibold">Pagos registrados</p>
+                        <ul class="mt-1 divide-y divide-line text-sm">
+                            @foreach ($reservation->payments as $payment)
+                                <li class="flex justify-between gap-3 py-1.5">
+                                    <span>{{ $payment->created_at->translatedFormat('d/m H:i') }} · {{ $payment->method->label() }}@if ($payment->reference) · {{ $payment->reference }}@endif <span class="text-muted">· {{ $payment->receiver?->name ?? '—' }}</span></span>
+                                    <span class="font-semibold tabular-nums">S/ {{ number_format((float) $payment->amount, 2) }}</span>
+                                </li>
+                            @endforeach
+                        </ul>
+                    </div>
+                @endif
 
                 <dl class="grid gap-1 text-sm">
-                    @if ($reservation->paymentVerifier)
-                        <div><dt class="inline text-muted">Pago verificado por</dt> <dd class="inline">{{ $reservation->paymentVerifier->name }} · {{ $reservation->payment_method?->label() }} · {{ $reservation->payment_verified_at->translatedFormat('d/m H:i') }}</dd></div>
-                    @endif
                     @if ($reservation->deliverer)
                         <div><dt class="inline text-muted">Entregado por</dt> <dd class="inline">{{ $reservation->deliverer->name }} · {{ $reservation->delivered_at->translatedFormat('d/m H:i') }}</dd></div>
+                    @endif
+                    @if ($reservation->isDonated())
+                        <div><dt class="inline text-muted">Donación registrada</dt> <dd class="inline">{{ $reservation->donor?->name ?? 'automáticamente' }} · {{ $reservation->donated_at->translatedFormat('d/m H:i') }}</dd></div>
                     @endif
                     @if ($reservation->canceller)
                         <div><dt class="inline text-muted">Cancelado por</dt> <dd class="inline">{{ $reservation->canceller->name }}</dd></div>
@@ -57,9 +86,15 @@
                 </dl>
 
                 @if ($canPay)
-                    <form wire:submit="verifyPayment" class="grid gap-3 rounded-control bg-stone-50 p-3 sm:grid-cols-2">
+                    <form wire:submit="registerPayment" class="grid gap-3 rounded-control bg-stone-50 p-3 sm:grid-cols-3">
+                        <p class="text-sm font-semibold sm:col-span-3">{{ $reservation->hasPayments() ? 'Cobrar saldo' : 'Registrar adelanto' }}</p>
                         <div>
-                            <label for="paymentMethod" class="block text-sm font-medium">Método de pago</label>
+                            <label for="paymentAmount" class="block text-sm font-medium">Monto (S/)</label>
+                            <input id="paymentAmount" type="number" step="0.01" min="0.01" inputmode="decimal" wire:model="paymentAmount" class="mt-1 block min-h-11 w-full rounded-control border border-stone-300 bg-white px-3">
+                            @error('paymentAmount')<p class="mt-1 text-sm text-danger">{{ $message }}</p>@enderror
+                        </div>
+                        <div>
+                            <label for="paymentMethod" class="block text-sm font-medium">Método</label>
                             <select id="paymentMethod" wire:model="paymentMethod" class="mt-1 block min-h-11 w-full rounded-control border border-stone-300 bg-white px-3">
                                 @foreach ($methods as $method)
                                     <option value="{{ $method->value }}">{{ $method->label() }}</option>
@@ -67,20 +102,28 @@
                             </select>
                         </div>
                         <div>
-                            <label for="paymentReference" class="block text-sm font-medium">N.º de operación (opcional)</label>
+                            <label for="paymentReference" class="block text-sm font-medium">N.º de operación</label>
                             <input id="paymentReference" type="text" wire:model="paymentReference" class="mt-1 block min-h-11 w-full rounded-control border border-stone-300 bg-white px-3">
                             @error('paymentReference')<p class="mt-1 text-sm text-danger">{{ $message }}</p>@enderror
                         </div>
-                        <x-ui.button type="submit" class="sm:col-span-2" wire:loading.attr="disabled"
-                                     wire:confirm="¿Confirmas que recibiste S/ {{ number_format((float) $reservation->total, 2) }}?">
-                            Verificar pago de S/ {{ number_format((float) $reservation->total, 2) }}
+                        <x-ui.button type="submit" class="sm:col-span-3" wire:loading.attr="disabled" wire:confirm="¿Confirmas que verificaste este pago?">
+                            Registrar pago
                         </x-ui.button>
                     </form>
                 @endif
 
                 @if ($canDeliver)
-                    <x-ui.button class="w-full" wire:click="deliver" wire:loading.attr="disabled" wire:confirm="¿Registrar la entrega del pedido completo?">
+                    <x-ui.button class="w-full" wire:click="deliver" wire:loading.attr="disabled" wire:confirm="¿Registrar la entrega del pedido completo?" :disabled="! $reservation->isFullyPaid()">
                         <x-ui.icon name="check" class="size-5" /> Registrar entrega
+                    </x-ui.button>
+                    @unless ($reservation->isFullyPaid())
+                        <p class="-mt-2 text-xs text-muted">Se habilita cuando el saldo esté cobrado.</p>
+                    @endunless
+                @endif
+
+                @if ($canDonate)
+                    <x-ui.button variant="secondary" class="w-full" wire:click="markDonated" wire:confirm="¿Registrar este pedido no recogido como donación?">
+                        Registrar como donación
                     </x-ui.button>
                 @endif
 
@@ -96,7 +139,7 @@
                     </details>
                 @endif
 
-                @if (! $canPay && ! $canDeliver && ! $canCancel)
+                @if (! $canPay && ! $canDeliver && ! $canDonate && ! $canCancel)
                     <p class="text-sm text-muted">No hay acciones disponibles para tu rol en el estado actual.</p>
                 @endif
             </div>

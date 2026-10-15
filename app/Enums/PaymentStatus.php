@@ -5,13 +5,15 @@ namespace App\Enums;
 enum PaymentStatus: string
 {
     case Pending = 'pending';
-    case Verified = 'verified';
+    case Partial = 'partial';
+    case Paid = 'paid';
 
     public function label(): string
     {
         return match ($this) {
-            self::Pending => 'Pago pendiente',
-            self::Verified => 'Pago verificado',
+            self::Pending => 'Sin pago',
+            self::Partial => 'Adelanto pagado',
+            self::Paid => 'Pagado',
         };
     }
 }

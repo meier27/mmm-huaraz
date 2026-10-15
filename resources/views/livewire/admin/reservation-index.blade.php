@@ -34,7 +34,8 @@
                             <span class="font-display text-base font-bold text-earth tabular-nums">S/ {{ number_format((float) $reservation->total, 2) }}</span>
                             <span @class(['rounded-full px-2 py-1', 'bg-amber-100 text-warning' => $reservation->status->value === 'pending', 'bg-green-100 text-success' => $reservation->status->value === 'confirmed', 'bg-red-100 text-danger' => $reservation->isCancelled()])>{{ $reservation->status->label() }}</span>
                             @unless ($reservation->isCancelled())
-                                <span @class(['rounded-full px-2 py-1', 'bg-green-100 text-success' => $reservation->isDelivered(), 'bg-stone-100 text-muted' => ! $reservation->isDelivered()])>{{ $reservation->delivery_status->label() }}</span>
+                                <span @class(['rounded-full px-2 py-1', 'bg-green-100 text-success' => $reservation->isFullyPaid(), 'bg-sky-100 text-navy' => $reservation->payment_status->value === 'partial', 'bg-stone-100 text-muted' => ! $reservation->hasPayments()])>{{ $reservation->payment_status->label() }}</span>
+                                <span @class(['rounded-full px-2 py-1', 'bg-green-100 text-success' => $reservation->isDelivered(), 'bg-violet-100 text-violet-800' => $reservation->isDonated(), 'bg-stone-100 text-muted' => $reservation->delivery_status->value === 'pending'])>{{ $reservation->delivery_status->label() }}</span>
                             @endunless
                         </div>
                     </a>

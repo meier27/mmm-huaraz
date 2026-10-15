@@ -22,6 +22,9 @@
             <x-admin.checkbox label="Reservas abiertas al público" model="form.reservations_open" />
             <p class="text-xs text-muted">Ábrelas solo cuando el menú, los precios y la forma de pago estén confirmados.</p>
         </div>
+        <x-admin.input label="Adelanto mínimo (%)" model="form.deposit_min_percent" type="number" min="1" max="100" inputmode="numeric"
+                       hint="Vacío = se acepta cualquier adelanto mayor que cero." />
+        <p class="self-end text-xs text-muted">Cambios y cancelaciones: hasta {{ config('reservations.change_deadline_hours') }} h antes del horario. Lo no recogido pasa a donación.</p>
         <x-admin.textarea label="Instrucciones de pago y recojo" model="form.reservation_instructions" rows="3" class="sm:col-span-2"
                           hint="Se muestran al reservar y en la página del QR. Usa solo métodos oficiales." />
 

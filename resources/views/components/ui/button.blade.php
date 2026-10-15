@@ -1,6 +1,5 @@
 @props([
     'variant' => 'primary',
-    'href' => null,
     'type' => 'button',
 ])
 
@@ -13,8 +12,9 @@
         };
 @endphp
 
-@if ($href)
-    <a href="{{ $href }}" {{ $attributes->class($classes) }}>{{ $slot }}</a>
+{{-- "href" se deja en $attributes para que Blade lo escape una sola vez. --}}
+@if ($attributes->has('href'))
+    <a {{ $attributes->class($classes) }}>{{ $slot }}</a>
 @else
-    <button type="{{ $type }}" {{ $attributes->class($classes) }}>{{ $slot }}</button>
+    <button {{ $attributes->merge(['type' => $type])->class($classes) }}>{{ $slot }}</button>
 @endif

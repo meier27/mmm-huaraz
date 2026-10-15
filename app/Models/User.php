@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Enums\Role;
+use App\Models\Concerns\Auditable;
 use Database\Factories\UserFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
@@ -11,7 +12,7 @@ use Illuminate\Notifications\Notifiable;
 class User extends Authenticatable
 {
     /** @use HasFactory<UserFactory> */
-    use HasFactory, Notifiable;
+    use Auditable, HasFactory, Notifiable;
 
     /**
      * The attributes that are mass assignable.
@@ -60,5 +61,14 @@ class User extends Authenticatable
     public function isAdmin(): bool
     {
         return $this->hasRole(Role::Admin);
+    }
+
+    /**
+     * Evita quedarse sin administradores activos.
+     */
+    public function isLastActiveAdmin(): bool
+    {
+        return $this->isAdmin()
+            && static::query()->where('role', Role::Admin)->where('is_active', true)->count() === 1;
     }
 }

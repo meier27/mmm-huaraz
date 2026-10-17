@@ -1,4 +1,6 @@
 <div>
+    <x-admin.event-tabs :event="$this->event" />
+
     <x-admin.page-header title="Turismo" description="Lugares para conocer Huaraz. Usa solo fotografías con autorización de uso.">
         <x-slot:actions>
             <x-ui.button wire:click="create">Nuevo lugar</x-ui.button>

@@ -8,8 +8,8 @@ use App\Enums\PaymentStatus;
 use App\Enums\ReservationStatus;
 use App\Exceptions\ReservationException;
 use App\Models\AuditLog;
+use App\Models\ChurchEvent;
 use App\Models\DishOffering;
-use App\Models\EventSetting;
 use App\Models\Reservation;
 use App\Models\ReservationItem;
 use App\Models\ReservationPayment;
@@ -42,7 +42,11 @@ class ReservationService
     /**
      * @param  array<int|string, int|string>  $quantities  id de oferta => porciones
      */
-    public function create(array $quantities, string $name, string $phone, ?string $notes, string $idempotencyKey): Reservation
+    /**
+     * @param  ChurchEvent|null  $event  Evento de la página desde la que se reserva: si se indica,
+     *                                   solo se aceptan platos de ese evento.
+     */
+    public function create(array $quantities, string $name, string $phone, ?string $notes, string $idempotencyKey, ?ChurchEvent $event = null): Reservation
     {
         $quantities = $this->cleanQuantities($quantities);
 
@@ -51,12 +55,13 @@ class ReservationService
         }
 
         try {
-            return DB::transaction(function () use ($quantities, $name, $phone, $notes, $idempotencyKey) {
-                $lines = $this->reserveStock($quantities);
+            return DB::transaction(function () use ($quantities, $name, $phone, $notes, $idempotencyKey, $event) {
+                $lines = $this->reserveStock($quantities, $event?->id);
                 $token = bin2hex(random_bytes(24));
 
                 $reservation = new Reservation;
                 $reservation->forceFill([
+                    'church_event_id' => $lines[0][0]->dish->church_event_id,
                     'code' => $this->uniqueCode(),
                     'token_hash' => Reservation::hashToken($token),
                     'token_encrypted' => $token,
@@ -106,7 +111,7 @@ class ReservationService
                 throw new ReservationException("El monto supera el saldo pendiente (S/ {$balance}).");
             }
 
-            $minimum = EventSetting::current()->minimumDeposit((string) $reservation->total);
+            $minimum = $reservation->event->minimumDeposit((string) $reservation->total);
             if (! $reservation->hasPayments() && bccomp($amount, $minimum, 2) < 0) {
                 throw new ReservationException("El adelanto mínimo para esta reserva es S/ {$minimum}.");
             }
@@ -219,7 +224,8 @@ class ReservationService
             $this->releaseStock($reservation);
             $reservation->items()->delete();
 
-            $lines = $this->reserveStock($quantities);
+            // El nuevo pedido debe ser del mismo evento que la reserva.
+            $lines = $this->reserveStock($quantities, $reservation->church_event_id);
             $total = $this->sum($lines);
 
             if (bccomp($total, (string) $reservation->amount_paid, 2) < 0) {
@@ -338,15 +344,18 @@ class ReservationService
 
     /**
      * Bloquea las ofertas, valida disponibilidad y descuenta el stock.
+     * Todas deben ser del mismo evento (y de $eventId, si se indica): una
+     * reserva pertenece a un único evento.
      *
      * @param  array<int, int>  $quantities
      * @return list<array{0: DishOffering, 1: int, 2: string}>
      */
-    private function reserveStock(array $quantities): array
+    private function reserveStock(array $quantities, ?int $eventId = null): array
     {
         $offerings = DishOffering::query()
             ->bookable()
-            ->with('dish:id,name')
+            ->when($eventId, fn ($q) => $q->forEvent($eventId))
+            ->with('dish:id,name,church_event_id')
             ->whereIn('id', array_keys($quantities))
             ->orderBy('id')
             ->lockForUpdate()
@@ -376,6 +385,10 @@ class ReservationService
             }
 
             $lines[] = [$offering, $quantity, bcmul((string) $offering->price, (string) $quantity, 2)];
+        }
+
+        if (collect($lines)->map(fn ($line) => $line[0]->dish->church_event_id)->unique()->count() > 1) {
+            throw ValidationException::withMessages(['quantities' => 'Una reserva solo puede incluir platos de un mismo evento.']);
         }
 
         foreach ($lines as [$offering, $quantity]) {

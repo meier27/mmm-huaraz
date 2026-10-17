@@ -21,4 +21,8 @@ return [
     'starts_at' => '2026-10-22',
     'ends_at' => '2026-10-25',
     'official_url' => 'https://pe.mmmoficial.org/',
+
+    // Medios oficiales enlazados desde pe.mmmoficial.org (verificado el 16/10/2026).
+    'motto_url' => 'https://pe.mmmoficial.org/lemas/',
+    'impacto_url' => 'https://impactoevangelistico.net/',
 ];

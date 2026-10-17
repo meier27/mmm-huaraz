@@ -11,26 +11,40 @@
 
     @if ($showForm)
         <x-admin.form-panel :title="$editingId ? 'Editar método' : 'Nuevo método'">
-            <x-admin.select label="Tipo" model="form.type" :options="collect($types)->mapWithKeys(fn ($t) => [$t->value => $t->label()])" />
-            <x-admin.input label="Nombre visible" model="form.label" hint="Por ejemplo, el nombre del banco o «Yape»." />
-            <x-admin.input label="Titular" model="form.holder_name" />
-            <x-admin.input label="Número de cuenta" model="form.account_number" inputmode="numeric" />
-            <x-admin.input label="CCI" model="form.cci" inputmode="numeric" />
-            <x-admin.input label="Celular (Yape / Plin)" model="form.phone" type="tel" />
-            <div class="sm:col-span-2">
-                <x-admin.textarea label="Instrucciones" model="form.instructions" rows="3" />
-            </div>
+            <x-admin.select label="Tipo" model="form.type" :live="true" :options="collect($types)->mapWithKeys(fn ($t) => [$t->value => $t->label()])" />
+            <x-admin.input :label="$form->type === 'bank_transfer' ? 'Banco' : 'Nombre visible'" model="form.label"
+                           :hint="$form->type === 'bank_transfer' ? 'Por ejemplo, «BCP» o «Interbank».' : 'Se muestra como título de la tarjeta.'" />
 
-            <div class="sm:col-span-2">
-                <x-admin.input label="Código QR oficial (JPG, PNG o WebP, máx. 2 MB)" model="form.qr_image" type="file" accept="image/jpeg,image/png,image/webp" />
-                <div wire:loading wire:target="form.qr_image" class="mt-1 text-sm text-muted">Subiendo imagen…</div>
-                @if ($editing?->imageUrl() && ! $form->qr_image)
-                    <div class="mt-3 flex items-center gap-3">
-                        <img src="{{ $editing->imageUrl() }}" alt="" class="size-20 rounded-control object-contain" width="80" height="80">
-                        <x-ui.button variant="ghost" class="text-sm text-danger!" wire:click="removeImage({{ $editing->id }})" wire:confirm="¿Quitar el código QR actual?">Quitar QR</x-ui.button>
-                    </div>
-                @endif
-            </div>
+            @if (in_array('holder_name', $fields, true))
+                <x-admin.input label="Titular" model="form.holder_name" :class="in_array('phone', $fields, true) ? '' : 'sm:col-span-2'" />
+            @endif
+            @if (in_array('phone', $fields, true))
+                <x-admin.input :label="'Celular'.(in_array($form->type, ['yape', 'plin'], true) ? ' de '.ucfirst($form->type) : '')" model="form.phone" type="tel" />
+            @endif
+            @if (in_array('account_number', $fields, true))
+                <x-admin.input label="Número de cuenta" model="form.account_number" inputmode="numeric" />
+            @endif
+            @if (in_array('cci', $fields, true))
+                <x-admin.input label="CCI (cuenta interbancaria)" model="form.cci" inputmode="numeric" hint="20 dígitos, para transferir desde otros bancos." />
+            @endif
+            @if (in_array('instructions', $fields, true))
+                <div class="sm:col-span-2">
+                    <x-admin.textarea label="Instrucciones" model="form.instructions" rows="3" />
+                </div>
+            @endif
+
+            @if (in_array('qr', $fields, true))
+                <div class="sm:col-span-2">
+                    <x-admin.input label="Imagen del QR oficial (JPG, PNG o WebP, máx. 2 MB)" model="form.qr_image" type="file" accept="image/jpeg,image/png,image/webp" />
+                    <div wire:loading wire:target="form.qr_image" class="mt-1 text-sm text-muted">Subiendo imagen…</div>
+                    @if ($editing?->imageUrl() && ! $form->qr_image)
+                        <div class="mt-3 flex items-center gap-3">
+                            <img src="{{ $editing->imageUrl() }}" alt="" class="size-20 rounded-control object-contain" width="80" height="80">
+                            <x-ui.button variant="ghost" class="text-sm text-danger!" wire:click="removeImage({{ $editing->id }})" wire:confirm="¿Quitar el código QR actual?">Quitar QR</x-ui.button>
+                        </div>
+                    @endif
+                </div>
+            @endif
 
             <x-admin.input label="Orden" model="form.sort_order" type="number" min="0" />
             <x-admin.checkbox label="Publicado" model="form.is_published" />

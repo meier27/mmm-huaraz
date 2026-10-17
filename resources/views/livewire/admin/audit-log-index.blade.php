@@ -1,7 +1,7 @@
 <div>
     <x-admin.page-header title="Auditoría" description="Registro de altas, cambios y bajas. No se puede modificar ni eliminar." />
 
-    @php($actions = ['created' => 'Creó', 'updated' => 'Modificó', 'deleted' => 'Eliminó'])
+    @php($actions = ['created' => 'Creó', 'updated' => 'Modificó', 'deleted' => 'Eliminó', 'changed' => 'Cambió el pedido', 'receipt_viewed' => 'Vio el comprobante'])
 
     <ul class="divide-y divide-line rounded-card bg-white shadow-card">
         @forelse ($logs as $log)

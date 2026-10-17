@@ -8,7 +8,7 @@ class BannerForm extends ContentForm
 {
     protected array $except = ['image'];
 
-    public string $title = '';
+    public ?string $title = '';
 
     public ?string $subtitle = '';
 
@@ -28,7 +28,7 @@ class BannerForm extends ContentForm
     protected function rules(): array
     {
         return [
-            'title' => ['required', 'string', 'max:150'],
+            'title' => ['nullable', 'string', 'max:150'],
             'subtitle' => ['nullable', 'string', 'max:255'],
             'image_alt' => ['nullable', 'required_with:image', 'string', 'max:255'],
             'cta_label' => ['nullable', 'required_with:cta_url', 'string', 'max:50'],

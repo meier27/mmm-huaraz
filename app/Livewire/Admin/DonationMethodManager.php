@@ -22,10 +22,25 @@ class DonationMethodManager extends ContentManager
         return DonationMethod::class;
     }
 
+    /** Al cambiar el tipo, sugiere el nombre visible si estaba vacío o era el de otro tipo. */
+    public function updatedFormType(string $type): void
+    {
+        $labels = collect(DonationMethodType::cases())->map->label();
+
+        if (blank($this->form->label) || $labels->contains($this->form->label)) {
+            $this->form->label = $type === DonationMethodType::BankTransfer->value ? '' : (DonationMethodType::tryFrom($type)?->label() ?? '');
+        }
+    }
+
     /** @param DonationMethod $record */
     protected function afterSave(Model $record): void
     {
-        if ($this->form->qr_image) {
+        // Las transferencias bancarias no llevan QR: si se cambió el tipo, se retira.
+        if (! in_array('qr', DonationMethodForm::fieldsFor($this->form->type), true)) {
+            if ($record->imageUrl()) {
+                $record->removeImage();
+            }
+        } elseif ($this->form->qr_image) {
             $record->replaceImage($this->form->qr_image);
         }
     }
@@ -41,6 +56,7 @@ class DonationMethodManager extends ContentManager
             'records' => DonationMethod::query()->ordered()->get(),
             'types' => DonationMethodType::cases(),
             'editing' => $this->editingId ? DonationMethod::find($this->editingId) : null,
+            'fields' => DonationMethodForm::fieldsFor($this->form->type),
         ]);
     }
 }

@@ -2,6 +2,7 @@
 
 namespace App\Livewire\Admin;
 
+use App\Livewire\Admin\Concerns\ScopedToEvent;
 use App\Livewire\Forms\TouristPlaceForm;
 use App\Models\TouristPlace;
 use Illuminate\Database\Eloquent\Model;
@@ -12,9 +13,14 @@ use Livewire\WithFileUploads;
 #[Title('Turismo')]
 class TouristPlaceManager extends ContentManager
 {
-    use WithFileUploads;
+    use ScopedToEvent, WithFileUploads;
 
     public TouristPlaceForm $form;
+
+    protected function module(): string
+    {
+        return 'tourism';
+    }
 
     protected function modelClass(): string
     {
@@ -37,8 +43,8 @@ class TouristPlaceManager extends ContentManager
     public function render(): View
     {
         return view('livewire.admin.tourist-place-manager', [
-            'records' => TouristPlace::query()->ordered()->get(),
-            'editing' => $this->editingId ? TouristPlace::find($this->editingId) : null,
+            'records' => $this->query()->ordered()->get(),
+            'editing' => $this->editingId ? $this->query()->find($this->editingId) : null,
         ]);
     }
 }

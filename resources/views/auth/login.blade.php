@@ -14,13 +14,13 @@
                 <label for="email" class="block text-sm font-medium">Correo electrónico</label>
                 <input id="email" name="email" type="email" value="{{ old('email') }}" required autofocus autocomplete="username"
                        @error('email') aria-invalid="true" aria-describedby="email-error" @enderror
-                       class="mt-1 block min-h-11 w-full rounded-control border border-stone-300 px-3 py-2 focus:border-navy">
+                       class="mt-1 block min-h-11 w-full rounded-control border border-stone-300 px-3 py-2 focus:border-brand-strong">
             </div>
 
             <div>
                 <label for="password" class="block text-sm font-medium">Contraseña</label>
                 <input id="password" name="password" type="password" required autocomplete="current-password"
-                       class="mt-1 block min-h-11 w-full rounded-control border border-stone-300 px-3 py-2 focus:border-navy">
+                       class="mt-1 block min-h-11 w-full rounded-control border border-stone-300 px-3 py-2 focus:border-brand-strong">
                 @error('password')
                     <p class="mt-1 text-sm text-danger">{{ $message }}</p>
                 @enderror

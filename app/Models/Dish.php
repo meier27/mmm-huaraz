@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Models\Concerns\Auditable;
+use App\Models\Concerns\BelongsToEvent;
 use App\Models\Concerns\HasPublicImage;
 use App\Models\Concerns\Publishable;
 use Illuminate\Database\Eloquent\Model;
@@ -10,9 +11,12 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Dish extends Model
 {
-    use Auditable, HasPublicImage, Publishable;
+    use Auditable, BelongsToEvent, HasPublicImage, Publishable;
 
     protected string $imageColumn = 'image_path';
+
+    /** @var array{int, int} Tamaño máximo al optimizar la imagen subida. */
+    protected array $imageBounds = [1200, 1200];
 
     protected $fillable = ['name', 'description', 'allergens', 'image_alt', 'is_published', 'sort_order'];
 

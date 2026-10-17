@@ -1,4 +1,6 @@
 <div>
+    <x-admin.event-tabs :event="$this->event" />
+
     <x-admin.page-header title="Hospedaje" description="Opciones de alojamiento aprobadas por la organización.">
         <x-slot:actions>
             <x-ui.button wire:click="create">Nuevo hospedaje</x-ui.button>

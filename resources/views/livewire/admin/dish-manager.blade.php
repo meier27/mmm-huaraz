@@ -1,7 +1,9 @@
 <div>
+    <x-admin.event-tabs :event="$this->event" />
+
     <x-admin.page-header title="Platos" description="Catálogo de comidas. El precio, la fecha y el stock se definen en «Ofertas y stock».">
         <x-slot:actions>
-            <x-ui.button variant="secondary" href="{{ route('admin.dish-offerings') }}" wire:navigate>Ofertas y stock</x-ui.button>
+            <x-ui.button variant="secondary" href="{{ route('admin.events.offerings', $this->event) }}" wire:navigate>Ofertas y stock</x-ui.button>
             <x-ui.button wire:click="create">Nuevo plato</x-ui.button>
         </x-slot:actions>
     </x-admin.page-header>

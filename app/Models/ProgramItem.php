@@ -27,6 +27,12 @@ class ProgramItem extends Model
         $query->where('is_published', true);
     }
 
+    /** Actividades de los días de un evento. */
+    public function scopeForEvent(Builder $query, ChurchEvent|int $event): void
+    {
+        $query->whereHas('day', fn (Builder $day) => $day->forEvent($event));
+    }
+
     public function day(): BelongsTo
     {
         return $this->belongsTo(ProgramDay::class, 'program_day_id');

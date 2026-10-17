@@ -43,6 +43,12 @@ class DishOffering extends Model
             ->whereHas('dish', fn (Builder $dish) => $dish->where('is_published', true));
     }
 
+    /** Ofertas de los platos de un evento. */
+    public function scopeForEvent(Builder $query, ChurchEvent|int $event): void
+    {
+        $query->whereHas('dish', fn (Builder $dish) => $dish->forEvent($event));
+    }
+
     /** Horas siempre como H:i:s para que las comparaciones sean coherentes en cualquier motor. */
     protected function slotStart(): Attribute
     {

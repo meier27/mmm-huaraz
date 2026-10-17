@@ -4,14 +4,14 @@ namespace Tests\Feature\Admin;
 
 use App\Enums\Role;
 use App\Livewire\Admin\DonationMethodManager;
-use App\Livewire\Admin\EventSettingsEditor;
+use App\Livewire\Admin\EventEditor;
 use App\Livewire\Admin\FaqManager;
 use App\Livewire\Admin\ProgramDayManager;
 use App\Livewire\Admin\ProgramItemManager;
 use App\Livewire\Admin\TouristPlaceManager;
 use App\Livewire\Admin\VenueManager;
 use App\Models\AuditLog;
-use App\Models\EventSetting;
+use App\Models\ChurchEvent;
 use App\Models\Faq;
 use App\Models\ProgramDay;
 use App\Models\TouristPlace;
@@ -38,22 +38,34 @@ class ContentManagementTest extends TestCase
     public static function contentRoutes(): array
     {
         return [
-            ['/admin/convencion'], ['/admin/programa'], ['/admin/programa/dias'], ['/admin/sedes'],
-            ['/admin/donaciones'], ['/admin/hospedaje'], ['/admin/turismo'], ['/admin/preguntas'],
+            // {event}: la convención sembrada (evento con todos los módulos).
+            ['/admin/eventos'], ['/admin/eventos/{event}'], ['/admin/eventos/{event}/programa'], ['/admin/eventos/{event}/programa/dias'],
+            ['/admin/eventos/{event}/sedes'], ['/admin/eventos/{event}/platos'], ['/admin/eventos/{event}/platos/ofertas'],
+            ['/admin/eventos/{event}/hospedaje'], ['/admin/eventos/{event}/turismo'], ['/admin/donaciones'], ['/admin/preguntas'],
         ];
     }
 
     #[DataProvider('contentRoutes')]
     public function test_editor_can_open_content_screens(string $uri): void
     {
-        $this->actingAs(User::factory()->role(Role::Editor)->create())->get($uri)->assertOk();
+        $this->actingAs(User::factory()->role(Role::Editor)->create())->get($this->uri($uri))->assertOk();
     }
 
     #[DataProvider('contentRoutes')]
     public function test_cashier_and_delivery_cannot_open_content_screens(string $uri): void
     {
-        $this->actingAs(User::factory()->role(Role::Cashier)->create())->get($uri)->assertForbidden();
-        $this->actingAs(User::factory()->role(Role::Delivery)->create())->get($uri)->assertForbidden();
+        $this->actingAs(User::factory()->role(Role::Cashier)->create())->get($this->uri($uri))->assertForbidden();
+        $this->actingAs(User::factory()->role(Role::Delivery)->create())->get($this->uri($uri))->assertForbidden();
+    }
+
+    private function convention(): ChurchEvent
+    {
+        return ChurchEvent::featured();
+    }
+
+    private function uri(string $uri): string
+    {
+        return str_replace('{event}', (string) $this->convention()->id, $uri);
     }
 
     public function test_livewire_actions_are_authorized_on_every_request(): void
@@ -116,7 +128,7 @@ class ContentManagementTest extends TestCase
     public function test_venue_rejects_javascript_urls_and_out_of_range_coordinates(): void
     {
         Livewire::actingAs(User::factory()->role(Role::Editor)->create())
-            ->test(VenueManager::class)
+            ->test(VenueManager::class, ['event' => $this->convention()])
             ->call('create')
             ->set('form.name', 'Sede')
             ->set('form.maps_url', 'javascript:alert(1)')
@@ -131,7 +143,7 @@ class ContentManagementTest extends TestCase
         $day = ProgramDay::first();
 
         Livewire::actingAs(User::factory()->role(Role::Editor)->create())
-            ->test(ProgramItemManager::class)
+            ->test(ProgramItemManager::class, ['event' => $this->convention()])
             ->call('create')
             ->set('form.program_day_id', 99999)
             ->set('form.starts_at', '20:00')
@@ -150,7 +162,7 @@ class ContentManagementTest extends TestCase
     public function test_program_day_dates_must_be_unique(): void
     {
         Livewire::actingAs(User::factory()->role(Role::Editor)->create())
-            ->test(ProgramDayManager::class)
+            ->test(ProgramDayManager::class, ['event' => $this->convention()])
             ->call('create')
             ->set('form.date', '2026-10-22')
             ->call('save')
@@ -168,28 +180,73 @@ class ContentManagementTest extends TestCase
             ->set('editingId', $faq->id);
     }
 
-    public function test_event_settings_update_is_reflected_on_the_public_site(): void
+    public function test_event_data_update_is_reflected_on_the_public_site(): void
     {
-        EventSetting::current(); // calienta la caché
-
         Livewire::actingAs(User::factory()->role(Role::Editor)->create())
-            ->test(EventSettingsEditor::class)
-            ->set('form.contact_phone', '+51 900 000 000')
-            ->set('form.summary', 'Bienvenidos a Huaraz')
+            ->test(EventEditor::class, ['event' => $this->convention()])
+            ->set('form.body', 'Bienvenidos a Huaraz')
             ->call('save')
             ->assertHasNoErrors();
 
-        $this->get('/')->assertSee('Bienvenidos a Huaraz')->assertSee('+51 900 000 000');
+        $this->get(route('events.show', $this->convention()))->assertSee('Bienvenidos a Huaraz');
     }
 
-    public function test_event_settings_reject_end_date_before_start_and_non_https_social_links(): void
+    public function test_event_hero_uses_the_panel_image_optional_text_and_button(): void
+    {
+        Storage::fake('public');
+
+        Livewire::actingAs(User::factory()->role(Role::Editor)->create())
+            ->test(EventEditor::class, ['event' => $this->convention()])
+            ->set('form.image', UploadedFile::fake()->image('portada.jpg', 1920, 900))
+            ->set('form.image_alt', 'Estadio de Huaraz')
+            ->set('form.hero_text', 'Te esperamos con tu familia')
+            ->set('form.hero_button_label', 'Ver en vivo')
+            ->set('form.hero_button_url', '/bethel-tv')
+            ->call('save')
+            ->assertHasNoErrors();
+
+        $event = $this->convention()->fresh();
+        $this->get(route('events.show', $event))
+            ->assertSee($event->imageUrl(), false)
+            ->assertSee('alt="Estadio de Huaraz"', false)
+            ->assertSee('Te esperamos con tu familia')
+            ->assertSee('href="'.url('/bethel-tv').'"', false)
+            ->assertSee('Ver programa');
+
+        // Fechas y lugar no se repiten sobre la imagen: solo en la barra de datos.
+        $this->get(route('events.show', $event))
+            ->assertDontSee('<p class="max-w-2xl text-lg text-cream/90', false)
+            ->assertSee('aria-label="Datos clave"', false);
+
+        // Afiche con su propio texto: solo la imagen y el botón; el título queda para lectores de pantalla.
+        $event->update(['hero_show_title' => false, 'hero_show_buttons' => false, 'hero_text' => null]);
+        $this->get(route('events.show', $event))
+            ->assertDontSee('Te esperamos con tu familia')
+            ->assertDontSee('Ver programa')
+            ->assertSee('Ver en vivo')
+            ->assertSee('<h1 class="sr-only">', false);
+    }
+
+    public function test_event_hero_button_rejects_unsafe_links_and_needs_both_fields(): void
     {
         Livewire::actingAs(User::factory()->role(Role::Editor)->create())
-            ->test(EventSettingsEditor::class)
-            ->set('form.ends_on', '2026-10-01')
-            ->set('form.facebook_url', 'http://facebook.com/x')
+            ->test(EventEditor::class, ['event' => $this->convention()])
+            ->set('form.hero_button_label', 'Clic')
+            ->set('form.hero_button_url', 'javascript:alert(1)')
             ->call('save')
-            ->assertHasErrors(['form.ends_on', 'form.facebook_url']);
+            ->assertHasErrors(['form.hero_button_url'])
+            ->set('form.hero_button_url', '')
+            ->call('save')
+            ->assertHasErrors(['form.hero_button_url']);
+    }
+
+    public function test_event_data_rejects_end_date_before_start(): void
+    {
+        Livewire::actingAs(User::factory()->role(Role::Editor)->create())
+            ->test(EventEditor::class, ['event' => $this->convention()])
+            ->set('form.ends_on', '2026-10-01')
+            ->call('save')
+            ->assertHasErrors(['form.ends_on']);
     }
 
     public function test_tourist_place_image_is_stored_with_random_name_and_replaced(): void
@@ -197,7 +254,7 @@ class ContentManagementTest extends TestCase
         Storage::fake('public');
         $editor = User::factory()->role(Role::Editor)->create();
 
-        $component = Livewire::actingAs($editor)->test(TouristPlaceManager::class)
+        $component = Livewire::actingAs($editor)->test(TouristPlaceManager::class, ['event' => $this->convention()])
             ->call('create')
             ->set('form.name', 'Laguna de prueba')
             ->set('form.image', UploadedFile::fake()->image('foto.jpg', 800, 600))
@@ -222,6 +279,47 @@ class ContentManagementTest extends TestCase
         Storage::disk('public')->assertMissing($place->image_path);
     }
 
+    public function test_donation_method_form_shows_and_keeps_only_the_fields_of_its_type(): void
+    {
+        Storage::fake('public');
+        $editor = User::factory()->role(Role::Editor)->create();
+
+        // Yape: titular, celular y QR (sin cuenta ni CCI); el nombre visible se sugiere.
+        $component = Livewire::actingAs($editor)->test(DonationMethodManager::class)
+            ->call('create')
+            ->set('form.type', 'yape')
+            ->assertSet('form.label', 'Yape')
+            ->assertSee('Celular de Yape')->assertSee('Imagen del QR oficial')
+            ->assertDontSee('CCI (cuenta interbancaria)')
+            ->set('form.holder_name', 'Iglesia de prueba')
+            ->call('save')
+            ->assertHasErrors(['form.phone' => 'Indica el número de celular asociado.'])
+            ->set('form.phone', '999 999 999')
+            ->set('form.qr_image', UploadedFile::fake()->image('qr.png', 400, 400))
+            ->call('save')
+            ->assertHasNoErrors();
+
+        $yape = \App\Models\DonationMethod::sole();
+        $this->assertSame(['Yape', 'Iglesia de prueba', '999 999 999', null], [$yape->label, $yape->holder_name, $yape->phone, $yape->account_number]);
+        $this->assertNotNull($yape->qr_image_path);
+
+        // Cambiado a transferencia: banco, titular, cuenta y CCI; el celular y el QR se retiran.
+        $component->call('edit', $yape->id)
+            ->set('form.type', 'bank_transfer')
+            ->assertSet('form.label', '')
+            ->assertSee('CCI (cuenta interbancaria)')->assertDontSee('Imagen del QR oficial')
+            ->set('form.label', 'BCP')
+            ->call('save')
+            ->assertHasErrors(['form.account_number'])
+            ->set('form.cci', '00212300000000000000')
+            ->call('save')
+            ->assertHasNoErrors();
+
+        $bank = $yape->fresh();
+        $this->assertSame(['BCP', '00212300000000000000', null, null], [$bank->label, $bank->cci, $bank->phone, $bank->qr_image_path]);
+        $this->assertSame([], Storage::disk('public')->allFiles());
+    }
+
     public function test_non_image_and_svg_uploads_are_rejected_on_upload_and_never_stored(): void
     {
         Storage::fake('public');
@@ -235,7 +333,7 @@ class ContentManagementTest extends TestCase
             ->assertHasErrors('form.qr_image')
             ->assertSet('form.qr_image', null);
 
-        Livewire::actingAs($editor)->test(TouristPlaceManager::class)
+        Livewire::actingAs($editor)->test(TouristPlaceManager::class, ['event' => $this->convention()])
             ->call('create')
             ->set('form.name', 'Lugar')
             ->set('form.image', UploadedFile::fake()->create('doc.pdf', 10, 'application/pdf'))
@@ -250,7 +348,7 @@ class ContentManagementTest extends TestCase
         Storage::fake('public');
 
         Livewire::actingAs(User::factory()->role(Role::Editor)->create())
-            ->test(TouristPlaceManager::class)
+            ->test(TouristPlaceManager::class, ['event' => $this->convention()])
             ->call('create')
             ->set('form.name', 'Lugar')
             ->set('form.image_alt', 'Texto')

@@ -5,6 +5,7 @@ namespace App\Livewire\Forms;
 use App\Models\DishOffering;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Carbon;
+use Illuminate\Validation\Rule;
 
 class DishOfferingForm extends ContentForm
 {
@@ -28,7 +29,8 @@ class DishOfferingForm extends ContentForm
         $reserved = $editingId ? (int) DishOffering::whereKey($editingId)->value('reserved') : 0;
 
         return [
-            'dish_id' => ['required', 'integer', 'exists:dishes,id'],
+            // Solo platos del evento que se está editando.
+            'dish_id' => ['required', 'integer', Rule::exists('dishes', 'id')->where('church_event_id', $this->getComponent()->eventId)],
             'serve_date' => ['required', 'date_format:Y-m-d'],
             'slot_start' => [
                 'required', 'date_format:H:i,H:i:s',

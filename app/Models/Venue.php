@@ -4,15 +4,23 @@ namespace App\Models;
 
 use App\Enums\VenueKind;
 use App\Models\Concerns\Auditable;
+use App\Models\Concerns\BelongsToEvent;
+use App\Models\Concerns\HasPublicImage;
 use App\Models\Concerns\Publishable;
+use App\Support\GoogleMaps;
 use Illuminate\Database\Eloquent\Model;
 
 class Venue extends Model
 {
-    use Auditable, Publishable;
+    use Auditable, BelongsToEvent, HasPublicImage, Publishable;
+
+    protected string $imageColumn = 'image_path';
+
+    /** @var array{int, int} Tamaño máximo al optimizar la imagen subida. */
+    protected array $imageBounds = [1600, 1200];
 
     protected $fillable = [
-        'kind', 'name', 'address', 'directions', 'latitude', 'longitude', 'maps_url', 'is_published', 'sort_order',
+        'kind', 'name', 'address', 'directions', 'latitude', 'longitude', 'maps_url', 'image_alt', 'is_published', 'sort_order',
     ];
 
     protected function casts(): array
@@ -40,9 +48,18 @@ class Venue extends Model
             return $this->maps_url;
         }
 
-        return $this->hasCoordinates()
-            ? "https://www.google.com/maps/search/?api=1&query={$this->latitude},{$this->longitude}"
-            : null;
+        return GoogleMaps::link($this->mapQuery());
+    }
+
+    /** Mapa incrustado: punto exacto si hay coordenadas; si no, la dirección. */
+    public function mapEmbedUrl(): ?string
+    {
+        return GoogleMaps::embedUrl($this->mapQuery());
+    }
+
+    private function mapQuery(): ?string
+    {
+        return GoogleMaps::query($this->latitude, $this->longitude, $this->address);
     }
 
     public function openStreetMapEmbedUrl(): ?string

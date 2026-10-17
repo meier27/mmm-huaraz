@@ -38,7 +38,7 @@ class ReservationChangeForm extends Component
         }
 
         $current = $reservation->items->pluck('quantity', 'dish_offering_id')->all();
-        $this->quantities = DishOffering::query()->bookable()->pluck('id')
+        $this->quantities = DishOffering::query()->forEvent($reservation->church_event_id)->bookable()->pluck('id')
             ->mapWithKeys(fn ($id) => [$id => $current[$id] ?? 0])
             ->all();
     }
@@ -61,7 +61,7 @@ class ReservationChangeForm extends Component
     public function render(): View
     {
         $reservation = $this->reservationFromToken($this->token)->load('items.offering.dish');
-        $offerings = DishOffering::query()->bookable()->with('dish')->orderBy('serve_date')->orderBy('slot_start')->get();
+        $offerings = DishOffering::query()->forEvent($reservation->church_event_id)->bookable()->with('dish')->orderBy('serve_date')->orderBy('slot_start')->get();
 
         return view('livewire.reservation-change-form', [
             'reservation' => $reservation,
@@ -69,6 +69,6 @@ class ReservationChangeForm extends Component
             'prices' => $offerings->mapWithKeys(fn ($o) => [$o->id => (float) $o->price]),
             'held' => $reservation->items->pluck('quantity', 'dish_offering_id')->all(),
             'maxPerItem' => config('reservations.max_quantity_per_item'),
-        ]);
+        ])->layoutData(['event' => $reservation->event]);
     }
 }

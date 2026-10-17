@@ -14,6 +14,12 @@ class DonationMethod extends Model
 
     protected string $imageColumn = 'qr_image_path';
 
+    /** @var array{int, int} */
+    protected array $imageBounds = [1200, 1200];
+
+    /** Los QR se guardan sin pérdida: un píxel borroso puede impedir leerlos. */
+    protected bool $imageLossless = true;
+
     protected $fillable = [
         'type', 'label', 'holder_name', 'account_number', 'cci', 'phone', 'instructions', 'is_published', 'sort_order',
     ];

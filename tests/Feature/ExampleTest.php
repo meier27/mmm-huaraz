@@ -14,16 +14,20 @@ class ExampleTest extends TestCase
     {
         $this->seed(ConventionSeeder::class);
 
-        $this->get('/')
+        $this->get('/')->assertOk()->assertSee('Familia hay esperanza');
+
+        $this->get('/eventos/convencion-nacional-2026')
             ->assertOk()
             ->assertSee('Familia hay esperanza')
             ->assertSee('Estadio Rosas Pampa')
             ->assertSee('22 al 25 de octubre de 2026');
     }
 
-    public function test_home_page_works_before_seeding_using_verified_defaults(): void
+    public function test_home_page_works_before_seeding_without_inventing_an_event(): void
     {
-        $this->get('/')->assertOk()->assertSee('Familia hay esperanza');
+        // Sin datos no se muestra ningún evento destacado (no se inventan datos).
+        $this->get('/')->assertOk()->assertDontSee('Familia hay esperanza');
+        $this->get('/eventos')->assertOk();
     }
 
     public function test_responses_include_security_headers(): void

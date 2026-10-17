@@ -8,9 +8,13 @@ use App\Livewire\Admin\DishManager;
 use App\Livewire\Admin\DishOfferingManager;
 use App\Livewire\Admin\ReservationIndex;
 use App\Models\Banner;
+use App\Models\ChurchEvent;
 use App\Models\Dish;
 use App\Models\DishOffering;
-use App\Models\EventSetting;
+use App\Models\DonationMethod;
+use App\Models\ProgramItem;
+use App\Models\SiteSetting;
+use App\Models\Teaching;
 use App\Models\User;
 use App\Services\ReservationService;
 use Database\Seeders\ConventionSeeder;
@@ -43,10 +47,10 @@ class ReservationAdminTest extends TestCase
 
     public function test_menu_screens_are_limited_to_content_roles(): void
     {
-        $this->actingAs(User::factory()->role(Role::Editor)->create())->get('/admin/platos')->assertOk();
-        $this->actingAs(User::factory()->role(Role::Editor)->create())->get('/admin/platos/ofertas')->assertOk();
-        $this->actingAs(User::factory()->role(Role::Cashier)->create())->get('/admin/platos')->assertForbidden();
-        $this->actingAs(User::factory()->role(Role::Cashier)->create())->get('/admin/platos/ofertas')->assertForbidden();
+        $this->actingAs(User::factory()->role(Role::Editor)->create())->get(route('admin.events.dishes', $this->foodEvent()))->assertOk();
+        $this->actingAs(User::factory()->role(Role::Editor)->create())->get(route('admin.events.offerings', $this->foodEvent()))->assertOk();
+        $this->actingAs(User::factory()->role(Role::Cashier)->create())->get(route('admin.events.dishes', $this->foodEvent()))->assertForbidden();
+        $this->actingAs(User::factory()->role(Role::Cashier)->create())->get(route('admin.events.offerings', $this->foodEvent()))->assertForbidden();
     }
 
     public function test_search_by_code_name_and_phone(): void
@@ -69,7 +73,7 @@ class ReservationAdminTest extends TestCase
         app(ReservationService::class)->create([$offering->id => 6], 'Ana', '900000123', null, (string) Str::uuid());
 
         Livewire::actingAs(User::factory()->role(Role::Editor)->create())
-            ->test(DishOfferingManager::class)
+            ->test(DishOfferingManager::class, ['event' => $this->foodEvent()])
             ->call('edit', $offering->id)
             ->set('form.stock', 5)
             ->call('save')
@@ -87,7 +91,7 @@ class ReservationAdminTest extends TestCase
         $offering = $this->offering();
 
         Livewire::actingAs(User::factory()->role(Role::Editor)->create())
-            ->test(DishOfferingManager::class)
+            ->test(DishOfferingManager::class, ['event' => $this->foodEvent()])
             ->call('edit', $offering->id)
             ->set('form.stock', 20)
             ->call('save');
@@ -102,8 +106,8 @@ class ReservationAdminTest extends TestCase
         app(ReservationService::class)->create([$offering->id => 1], 'Ana', '900000123', null, (string) Str::uuid());
         $editor = User::factory()->role(Role::Editor)->create();
 
-        Livewire::actingAs($editor)->test(DishOfferingManager::class)->call('delete', $offering->id)->assertHasErrors('delete');
-        Livewire::actingAs($editor)->test(DishManager::class)->call('delete', $offering->dish_id)->assertHasErrors('delete');
+        Livewire::actingAs($editor)->test(DishOfferingManager::class, ['event' => $this->foodEvent()])->call('delete', $offering->id)->assertHasErrors('delete');
+        Livewire::actingAs($editor)->test(DishManager::class, ['event' => $this->foodEvent()])->call('delete', $offering->dish_id)->assertHasErrors('delete');
 
         $this->assertModelExists($offering);
     }
@@ -113,7 +117,7 @@ class ReservationAdminTest extends TestCase
         $offering = $this->offering();
 
         Livewire::actingAs(User::factory()->role(Role::Editor)->create())
-            ->test(DishOfferingManager::class)
+            ->test(DishOfferingManager::class, ['event' => $this->foodEvent()])
             ->call('create')
             ->set('form.dish_id', $offering->dish_id)
             ->set('form.serve_date', $offering->serve_date->toDateString())
@@ -148,6 +152,23 @@ class ReservationAdminTest extends TestCase
             ->assertSee('Vista de la cordillera');
     }
 
+    public function test_banner_title_is_optional_for_image_only_banners(): void
+    {
+        Storage::fake('public');
+
+        Livewire::actingAs(User::factory()->role(Role::Editor)->create())
+            ->test(BannerManager::class)
+            ->call('create')
+            ->set('form.image', UploadedFile::fake()->image('ayuno.jpg', 1920, 900))
+            ->set('form.image_alt', 'Afiche del ayuno nacional')
+            ->set('form.is_published', true)
+            ->call('save')
+            ->assertHasNoErrors();
+
+        $this->assertNull(Banner::sole()->title);
+        $this->get('/')->assertOk()->assertSee('Afiche del ayuno nacional')->assertDontSee('<h2 class="max-w-xl', false);
+    }
+
     public function test_banner_rejects_small_images_and_unsafe_links(): void
     {
         Storage::fake('public');
@@ -174,27 +195,69 @@ class ReservationAdminTest extends TestCase
         $this->artisan('app:demo-content')->assertSuccessful();
 
         $this->assertSame(3, Banner::where('title', 'like', '[Ejemplo]%')->count());
-        $this->assertSame(3, Dish::where('name', 'like', '[Ejemplo]%')->count());
-        $this->assertSame(24, DishOffering::count()); // 3 platos × 4 días × almuerzo y cena
-        $this->assertCount(6, Storage::disk('public')->allFiles());
-        $this->assertFalse(EventSetting::current()->reservations_open); // no abre reservas por su cuenta
+        $this->assertSame(5, Dish::where('name', 'like', '[Ejemplo]%')->count());
+        $this->assertSame(40, DishOffering::count()); // 5 platos × 4 días × almuerzo y cena
+        $this->assertSame(6, Teaching::published()->count());
+        $this->assertSame(5, ChurchEvent::count()); // la convención + 4 eventos de ejemplo
+        $this->assertSame(16, ProgramItem::count()); // 4 días × 4 actividades
+        $this->assertSame(0, DonationMethod::count()); // nunca inventa cuentas
+        $this->assertCount(22, Storage::disk('public')->allFiles()); // incluye 4 fotos de «Nuestra familia»
+        $this->assertFalse(ChurchEvent::featured()->reservations_open); // no abre reservas por su cuenta
+
+        $site = SiteSetting::sole();
+        $this->assertNull($site->contact_phone); // ni teléfonos
+        $this->assertNull($site->contact_whatsapp);
+        $site->update(['mission' => 'Misión escrita por la iglesia']);
+
+        $this->get('/')->assertOk()->assertSee('[Ejemplo] Esperanza para tu casa');
+        $this->get('/nosotros')->assertOk()->assertSee('Nombre y apellido');
+        $this->get(route('events.program', ChurchEvent::featured()))->assertOk()->assertSee('[Ejemplo] Culto evangelístico');
 
         $this->artisan('app:demo-content')->assertFailed(); // no duplica
 
         $this->artisan('app:demo-content', ['--remove' => true])->assertSuccessful();
         $this->assertSame(0, Banner::count());
+        $this->assertSame(0, \App\Models\GalleryPhoto::count());
         $this->assertSame(0, DishOffering::count());
+        $this->assertSame(0, Teaching::count() + ProgramItem::count());
+        $this->assertSame(['convencion-nacional-2026'], ChurchEvent::pluck('slug')->all()); // la convención real se conserva
         $this->assertSame([], Storage::disk('public')->allFiles());
+
+        $site->refresh();
+        $this->assertNull($site->history); // el texto de ejemplo se retira…
+        $this->assertSame('Misión escrita por la iglesia', $site->mission); // …lo editado se conserva
+    }
+
+    public function test_demo_content_can_open_reservations_to_preview_the_dishes(): void
+    {
+        Storage::fake('public');
+        $this->seed(ConventionSeeder::class);
+
+        $this->artisan('app:demo-content', ['--open-reservations' => true])->assertSuccessful();
+
+        $this->assertTrue(ChurchEvent::featured()->reservations_open);
+        $this->get($this->reservationsUrl())->assertOk()->assertSee('[Ejemplo] Pachamanca a la olla')->assertSee('S/ 18.00');
+    }
+
+    public function test_activity_name_is_editable_and_used_on_the_public_pages(): void
+    {
+        $this->seed(ConventionSeeder::class);
+        $this->get($this->reservationsUrl())->assertSee('Actividad solidaria de los hermanos de Huaraz');
+
+        $this->foodEvent()->update(['reservations_title' => 'Venta pro-templo']);
+
+        $this->get($this->reservationsUrl())->assertSee('<title>Venta pro-templo', false)->assertDontSee('Actividad solidaria de los hermanos');
     }
 
     public function test_home_shows_default_hero_without_banners_and_featured_dishes_only_when_open(): void
     {
         $this->offering([], ['name' => 'Pachamanca de prueba']);
 
-        $this->get('/')->assertOk()->assertSee('Ver programa')->assertDontSee('Pachamanca de prueba');
+        // Evento solo con comidas: el botón principal lleva a la actividad.
+        $this->get(route('events.show', $this->foodEvent()))->assertOk()->assertSee($this->reservationsUrl(), false)->assertDontSee('Pachamanca de prueba');
 
         $this->openReservations();
 
-        $this->get('/')->assertSee('Reserva tu comida')->assertSee('Pachamanca de prueba');
+        $this->get(route('events.show', $this->foodEvent()))->assertSee('Actividad solidaria de los hermanos de Huaraz')->assertSee('Pachamanca de prueba');
     }
 }

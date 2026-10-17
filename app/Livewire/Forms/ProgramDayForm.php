@@ -13,7 +13,7 @@ class ProgramDayForm extends ContentForm
     protected function rules(): array
     {
         return [
-            'date' => ['required', 'date_format:Y-m-d', Rule::unique('program_days', 'date')->ignore($this->getComponent()->editingId)],
+            'date' => ['required', 'date_format:Y-m-d', Rule::unique('program_days', 'date')->where('church_event_id', $this->getComponent()->eventId)->ignore($this->getComponent()->editingId)],
             'title' => ['nullable', 'string', 'max:150'],
         ];
     }

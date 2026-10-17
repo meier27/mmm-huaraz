@@ -1,4 +1,4 @@
-<x-layouts.public title="Reserva {{ $reservation->code }}" :noindex="true">
+<x-layouts.public title="Reserva {{ $reservation->code }}" :noindex="true" :event="$event">
     <div class="bg-cream">
         <div class="container-content py-10">
             <div class="mx-auto grid max-w-4xl gap-6 md:grid-cols-[18rem_1fr]">
@@ -44,7 +44,7 @@
 
                         <div class="mt-2 flex items-baseline justify-between border-t border-line pt-3">
                             <span class="font-semibold">Total</span>
-                            <span class="font-display text-2xl font-extrabold text-earth tabular-nums">S/ {{ number_format((float) $reservation->total, 2) }}</span>
+                            <span class="font-display text-2xl font-extrabold text-primary tabular-nums">S/ {{ number_format((float) $reservation->total, 2) }}</span>
                         </div>
 
                         @if ($reservation->notes)
@@ -56,8 +56,8 @@
                         <section class="rounded-card border border-brand/40 bg-white p-5" aria-labelledby="como-pagar">
                             <h2 id="como-pagar" class="text-lg font-bold">Cómo funciona</h2>
                             <div class="mt-3">@include('reservations.partials.rules')</div>
-                            @if ($settings->reservation_instructions && ! $reservation->isFullyPaid())
-                                <p class="mt-4 rounded-control bg-cream p-3 text-sm whitespace-pre-line">{{ $settings->reservation_instructions }}</p>
+                            @if ($event->reservation_instructions && ! $reservation->isFullyPaid())
+                                <p class="mt-4 rounded-control bg-cream p-3 text-sm whitespace-pre-line">{{ $event->reservation_instructions }}</p>
                             @endif
                         </section>
                     @endunless

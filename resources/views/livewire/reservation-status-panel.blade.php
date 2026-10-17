@@ -18,7 +18,7 @@
         </span>
         @unless ($reservation->isCancelled())
             @if ($reservation->hasPayments())
-                <span @class([$badge, 'bg-green-100 text-success' => $reservation->isFullyPaid(), 'bg-sky-100 text-navy' => ! $reservation->isFullyPaid()])>
+                <span @class([$badge, 'bg-green-100 text-success' => $reservation->isFullyPaid(), 'bg-sky-100 text-primary' => ! $reservation->isFullyPaid()])>
                     @if ($reservation->isFullyPaid())<x-ui.icon name="check" class="size-4" />@endif {{ $reservation->payment_status->label() }}
                 </span>
             @endif

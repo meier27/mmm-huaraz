@@ -32,14 +32,14 @@ class ReservationFlowTest extends TestCase
     {
         $this->offering();
 
-        $this->get('/reservas')->assertOk()->assertSee('Las reservas aún no están abiertas');
+        $this->get($this->reservationsUrl())->assertOk()->assertSee('Las reservas aún no están abiertas');
     }
 
     public function test_closed_reservations_cannot_be_submitted_even_by_crafted_requests(): void
     {
         $offering = $this->offering();
 
-        Livewire::test(ReservationForm::class)
+        Livewire::test(ReservationForm::class, ['event' => $this->foodEvent()])
             ->set("quantities.{$offering->id}", 1)
             ->set('customer_name', 'Ana Prueba')
             ->set('customer_phone', '900000123')
@@ -54,9 +54,9 @@ class ReservationFlowTest extends TestCase
         $this->openReservations();
         $offering = $this->offering(['price' => '15.00']);
 
-        $this->get('/reservas')->assertOk()->assertSee('Plato de prueba')->assertSee('S/ 15.00');
+        $this->get($this->reservationsUrl())->assertOk()->assertSee('Plato de prueba')->assertSee('S/ 15.00');
 
-        Livewire::test(ReservationForm::class)
+        Livewire::test(ReservationForm::class, ['event' => $this->foodEvent()])
             ->set("quantities.{$offering->id}", 2)
             ->set('customer_name', 'Ana Prueba')
             ->set('customer_phone', '+51 900 000 123')
@@ -86,7 +86,7 @@ class ReservationFlowTest extends TestCase
         $this->openReservations();
         $offering = $this->offering();
 
-        Livewire::test(ReservationForm::class)
+        Livewire::test(ReservationForm::class, ['event' => $this->foodEvent()])
             ->set("quantities.{$offering->id}", 1)
             ->set('customer_name', '')
             ->set('customer_phone', 'llámame')
@@ -101,15 +101,15 @@ class ReservationFlowTest extends TestCase
         RateLimiter::clear('reservation-create:127.0.0.1');
         $offering = $this->offering(['stock' => 100]);
 
-        $component = Livewire::test(ReservationForm::class)
+        $component = Livewire::test(ReservationForm::class, ['event' => $this->foodEvent()])
             ->set("quantities.{$offering->id}", 1)
             ->set('customer_name', 'Ana Prueba')
             ->set('customer_phone', '900000123');
 
         $component->call('submit');
-        Livewire::test(ReservationForm::class)->set("quantities.{$offering->id}", 1)->set('customer_name', 'Ana Prueba')->set('customer_phone', '900000123')->call('submit');
+        Livewire::test(ReservationForm::class, ['event' => $this->foodEvent()])->set("quantities.{$offering->id}", 1)->set('customer_name', 'Ana Prueba')->set('customer_phone', '900000123')->call('submit');
 
-        Livewire::test(ReservationForm::class)
+        Livewire::test(ReservationForm::class, ['event' => $this->foodEvent()])
             ->set("quantities.{$offering->id}", 1)
             ->set('customer_name', 'Ana Prueba')
             ->set('customer_phone', '900000123')

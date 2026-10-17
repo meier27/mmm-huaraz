@@ -1,6 +1,6 @@
 @props(['title', 'eyebrow' => null])
 
-<section class="bg-cream">
+<section>
     <div class="container-content py-10 sm:py-14">
         @if ($eyebrow)
             <p class="text-sm font-semibold tracking-wide text-brand-strong uppercase">{{ $eyebrow }}</p>

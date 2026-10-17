@@ -2,6 +2,7 @@
 
 namespace App\Livewire\Admin;
 
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Livewire\Attributes\Layout;
 use Livewire\Attributes\Locked;
@@ -50,7 +51,9 @@ abstract class ContentManager extends Component
         $attributes = $this->form->attributes();
 
         $record = $this->editingId ? $this->findRecord($this->editingId) : new ($this->modelClass());
-        $record->fill($attributes)->save();
+        $record->fill($attributes);
+        $this->beforeSave($record);
+        $record->save();
         $this->afterSave($record);
 
         $this->resetForm();
@@ -80,6 +83,12 @@ abstract class ContentManager extends Component
         $this->resetForm();
     }
 
+    /** Ajustes derivados que no vienen del formulario (p. ej. el slug). */
+    protected function beforeSave(Model $record): void
+    {
+        //
+    }
+
     protected function afterSave(Model $record): void
     {
         //
@@ -93,8 +102,14 @@ abstract class ContentManager extends Component
         $this->showForm = false;
     }
 
+    /** Consulta base de los registros gestionados (los gestores de evento la acotan). */
+    protected function query(): Builder
+    {
+        return $this->modelClass()::query();
+    }
+
     protected function findRecord(int $id): Model
     {
-        return $this->modelClass()::query()->findOrFail($id);
+        return $this->query()->findOrFail($id);
     }
 }

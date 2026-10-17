@@ -5,7 +5,7 @@
         'success' => 'border-success/30 bg-green-50 text-success',
         'error' => 'border-danger/30 bg-red-50 text-danger',
         'warning' => 'border-warning/30 bg-amber-50 text-warning',
-        default => 'border-navy/20 bg-cream text-navy',
+        default => 'border-primary/20 bg-cream text-primary',
     };
 @endphp
 

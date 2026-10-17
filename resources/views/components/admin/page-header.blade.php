@@ -8,6 +8,6 @@
         @endif
     </div>
     @isset($actions)
-        <div class="flex gap-2">{{ $actions }}</div>
+        <div class="flex shrink-0 gap-2 whitespace-nowrap">{{ $actions }}</div>
     @endisset
 </div>

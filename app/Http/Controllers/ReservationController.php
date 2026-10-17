@@ -18,6 +18,7 @@ class ReservationController extends Controller
         return response()
             ->view('reservations.show', [
                 'reservation' => $reservation,
+                'event' => $reservation->event,
                 'qrSvg' => QrCode::svg($reservation->publicUrl()),
                 'token' => $token,
             ])

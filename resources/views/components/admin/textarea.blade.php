@@ -7,7 +7,7 @@
     <textarea id="{{ $id }}" rows="{{ $rows }}" wire:model="{{ $model }}"
               @error($model) aria-invalid="true" @enderror
               aria-describedby="{{ $id }}-hint {{ $id }}-error"
-              {{ $attributes->except('class')->class('mt-1 block w-full rounded-control border border-stone-300 bg-white px-3 py-2 focus:border-navy') }}></textarea>
+              {{ $attributes->except('class')->class('mt-1 block w-full rounded-control border border-stone-300 bg-white px-3 py-2 focus:border-brand-strong') }}></textarea>
     @if ($hint)
         <p id="{{ $id }}-hint" class="mt-1 text-xs text-muted">{{ $hint }}</p>
     @endif

@@ -2,8 +2,8 @@
 
 namespace App\Livewire;
 
+use App\Models\ChurchEvent;
 use App\Models\DishOffering;
-use App\Models\EventSetting;
 use App\Services\ReservationService;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\RateLimiter;
@@ -12,11 +12,9 @@ use Illuminate\Validation\ValidationException;
 use Illuminate\View\View;
 use Livewire\Attributes\Layout;
 use Livewire\Attributes\Locked;
-use Livewire\Attributes\Title;
 use Livewire\Component;
 
 #[Layout('components.layouts.public')]
-#[Title('Reserva tu comida')]
 class ReservationForm extends Component
 {
     /** @var array<int|string, int|string> id de oferta => porciones */
@@ -31,15 +29,22 @@ class ReservationForm extends Component
     #[Locked]
     public string $idempotencyKey = '';
 
-    public function mount(): void
+    /** Evento cuya actividad de comidas se reserva (no modificable desde el navegador). */
+    #[Locked]
+    public ChurchEvent $event;
+
+    public function mount(ChurchEvent $event): void
     {
+        abort_unless($event->is_published && $event->has_food, 404);
+        $this->event = $event;
+
         $this->idempotencyKey = (string) Str::uuid();
         $this->quantities = $this->offerings()->mapWithKeys(fn ($offering) => [$offering->id => 0])->all();
     }
 
     public function submit(ReservationService $reservations): void
     {
-        if (! EventSetting::current()->reservations_open) {
+        if (! $this->event->acceptsReservations()) {
             throw ValidationException::withMessages(['quantities' => 'Las reservas no están abiertas en este momento.']);
         }
 
@@ -69,6 +74,7 @@ class ReservationForm extends Component
             trim($data['customer_phone']),
             $data['notes'] ?: null,
             $this->idempotencyKey,
+            $this->event,
         );
 
         $this->redirect($reservation->publicUrl());
@@ -79,11 +85,12 @@ class ReservationForm extends Component
         $offerings = $this->offerings();
 
         return view('livewire.reservation-form', [
-            'settings' => EventSetting::current(),
+            'event' => $this->event,
             'groups' => $offerings->groupBy(fn ($o) => $o->serve_date->toDateString()),
             'prices' => $offerings->mapWithKeys(fn ($o) => [$o->id => (float) $o->price]),
             'maxPerItem' => config('reservations.max_quantity_per_item'),
-        ]);
+        ])->title($this->event->reservationsTitle().' · '.$this->event->title)
+            ->layoutData(['event' => $this->event]);
     }
 
     /**
@@ -92,6 +99,7 @@ class ReservationForm extends Component
     private function offerings(): Collection
     {
         return DishOffering::query()
+            ->forEvent($this->event)
             ->bookable()
             ->with('dish')
             ->orderBy('serve_date')

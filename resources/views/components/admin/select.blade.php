@@ -1,13 +1,13 @@
-@props(['label', 'model', 'options' => [], 'placeholder' => null])
+@props(['label', 'model', 'options' => [], 'placeholder' => null, 'live' => false])
 
 {{-- $options: [valor => etiqueta] --}}
 @php($id = str_replace('.', '-', $model))
 
 <div {{ $attributes->only('class') }}>
     <label for="{{ $id }}" class="block text-sm font-medium">{{ $label }}</label>
-    <select id="{{ $id }}" wire:model="{{ $model }}"
+    <select id="{{ $id }}" {{ $live ? 'wire:model.live' : 'wire:model' }}="{{ $model }}"
             @error($model) aria-invalid="true" aria-describedby="{{ $id }}-error" @enderror
-            {{ $attributes->except('class')->class('mt-1 block min-h-11 w-full rounded-control border border-stone-300 bg-white px-3 py-2 focus:border-navy') }}>
+            {{ $attributes->except('class')->class('mt-1 block min-h-11 w-full rounded-control border border-stone-300 bg-white px-3 py-2 focus:border-brand-strong') }}>
         @if ($placeholder !== null)
             <option value="">{{ $placeholder }}</option>
         @endif

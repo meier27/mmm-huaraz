@@ -5,6 +5,7 @@ namespace App\Livewire\Admin;
 use App\Enums\DeliveryStatus;
 use App\Enums\PaymentStatus;
 use App\Enums\ReservationStatus;
+use App\Models\ChurchEvent;
 use App\Models\Reservation;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\View\View;
@@ -32,6 +33,9 @@ class ReservationIndex extends Component
     #[Url(except: '')]
     public string $delivery = '';
 
+    #[Url(as: 'evento', except: '')]
+    public string $event = '';
+
     public function boot(): void
     {
         $this->authorize('viewAny', Reservation::class);
@@ -39,7 +43,7 @@ class ReservationIndex extends Component
 
     public function updating(string $property): void
     {
-        if (in_array($property, ['search', 'status', 'payment', 'delivery'], true)) {
+        if (in_array($property, ['search', 'status', 'payment', 'delivery', 'event'], true)) {
             $this->resetPage();
         }
     }
@@ -57,6 +61,7 @@ class ReservationIndex extends Component
             ->when(ReservationStatus::tryFrom($this->status), fn (Builder $q, $s) => $q->where('status', $s))
             ->when(PaymentStatus::tryFrom($this->payment), fn (Builder $q, $s) => $q->where('payment_status', $s))
             ->when(DeliveryStatus::tryFrom($this->delivery), fn (Builder $q, $s) => $q->where('delivery_status', $s))
+            ->when(ctype_digit($this->event), fn (Builder $q) => $q->forEvent((int) $this->event))
             ->withSum('items as portions', 'quantity')
             ->latest('id')
             ->paginate(20);
@@ -66,6 +71,7 @@ class ReservationIndex extends Component
             'statuses' => ReservationStatus::cases(),
             'payments' => PaymentStatus::cases(),
             'deliveries' => DeliveryStatus::cases(),
+            'events' => ChurchEvent::query()->where('has_food', true)->orderByDesc('starts_on')->pluck('title', 'id'),
         ]);
     }
 }

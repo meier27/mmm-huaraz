@@ -1,4 +1,6 @@
 <div>
+    <x-admin.event-tabs :event="$this->event" />
+
     <x-admin.page-header title="Días del programa" description="Cada día agrupa las actividades del programa.">
         <x-slot:actions>
             <x-ui.button wire:click="create">Nuevo día</x-ui.button>

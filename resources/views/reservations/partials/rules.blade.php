@@ -3,7 +3,7 @@
     <li class="flex gap-2">
         <x-ui.icon name="check" class="mt-0.5 size-4 text-brand-strong" />
         <span>
-            Confirma tu reserva pagando un <strong>adelanto</strong>@if ($settings->deposit_min_percent) (mínimo {{ $settings->deposit_min_percent }} %)@endif; el saldo lo pagas al recoger.
+            Confirma tu reserva pagando un <strong>adelanto</strong>@if ($event->deposit_min_percent) (mínimo {{ $event->deposit_min_percent }} %)@endif; el saldo lo pagas al recoger.
         </span>
     </li>
     <li class="flex gap-2">

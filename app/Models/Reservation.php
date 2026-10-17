@@ -6,6 +6,7 @@ use App\Enums\DeliveryStatus;
 use App\Enums\PaymentStatus;
 use App\Enums\ReservationStatus;
 use App\Models\Concerns\Auditable;
+use App\Models\Concerns\BelongsToEvent;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -16,7 +17,7 @@ use Illuminate\Support\Carbon;
  */
 class Reservation extends Model
 {
-    use Auditable;
+    use Auditable, BelongsToEvent;
 
     protected $guarded = ['*'];
 

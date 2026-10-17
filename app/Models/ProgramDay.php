@@ -3,12 +3,13 @@
 namespace App\Models;
 
 use App\Models\Concerns\Auditable;
+use App\Models\Concerns\BelongsToEvent;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class ProgramDay extends Model
 {
-    use Auditable;
+    use Auditable, BelongsToEvent;
 
     protected $fillable = ['date', 'title'];
 

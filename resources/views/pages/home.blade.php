@@ -1,250 +1,57 @@
-<x-layouts.public>
-    {{-- ===== Hero: carrusel de banners o portada predeterminada ===== --}}
+<x-layouts.public :overlay="true">
+    {{-- ===== 1. Portada: carrusel de banners o portada predeterminada ===== --}}
     @if ($banners->isNotEmpty())
-        <h1 class="sr-only">{{ $settings->name }} «{{ $settings->theme }}»</h1>
-        <section class="relative isolate overflow-hidden bg-earth text-white"
-                 aria-roledescription="carrusel" aria-label="Destacados"
-                 x-data="{
-                     active: 0,
-                     total: {{ $banners->count() }},
-                     playing: {{ $banners->count() > 1 ? 'true' : 'false' }} && ! window.matchMedia('(prefers-reduced-motion: reduce)').matches,
-                     timer: null,
-                     init() { this.start() },
-                     start() { this.stop(); if (this.playing) this.timer = setInterval(() => this.next(), 7000) },
-                     stop() { clearInterval(this.timer) },
-                     toggle() { this.playing = ! this.playing; this.start() },
-                     next() { this.active = (this.active + 1) % this.total },
-                     prev() { this.active = (this.active - 1 + this.total) % this.total },
-                     go(i) { this.active = i; this.start() },
-                 }"
-                 x-on:mouseenter="stop()" x-on:mouseleave="start()" x-on:focusin="stop()"
-                 x-on:keydown.arrow-right="next(); start()" x-on:keydown.arrow-left="prev(); start()">
-
-            <div class="relative min-h-136 sm:min-h-152 lg:min-h-168">
-                @foreach ($banners as $banner)
-                    <div
-                         role="group" aria-roledescription="diapositiva" aria-label="{{ $loop->iteration }} de {{ $banners->count() }}"
-                         @class(['absolute inset-0 transition-opacity duration-700 ease-out', 'opacity-100 z-10' => $loop->first, 'opacity-0 z-0' => ! $loop->first])
-                         x-bind:class="active === {{ $loop->index }} ? 'opacity-100 z-10' : 'opacity-0 z-0'"
-                         x-bind:inert="active !== {{ $loop->index }}">
-                        @if ($banner->imageUrl())
-                            <img src="{{ $banner->imageUrl() }}" alt="{{ $banner->image_alt ?? '' }}" width="1920" height="900"
-                                 class="absolute inset-0 -z-10 size-full object-cover"
-                                 @if ($loop->first) fetchpriority="high" @else loading="lazy" @endif decoding="async">
-                            <div class="absolute inset-0 -z-10 bg-linear-to-r from-earth/95 via-earth/70 to-earth/10"></div>
-                        @else
-                            <div class="absolute inset-0 -z-10 bg-linear-to-br from-earth via-[#5a2712] to-navy"></div>
-                            <x-ui.mountains class="absolute inset-x-0 bottom-0 -z-10 h-40 text-[#3d1a0b] sm:h-56" />
-                        @endif
-
-                        <div class="container-content flex h-full flex-col justify-center py-20">
-                            <p class="text-sm font-semibold tracking-[0.2em] text-brand uppercase">{{ $settings->organization }} · {{ $settings->city }}</p>
-                            <h2 class="mt-4 max-w-3xl font-display text-4xl leading-tight font-extrabold text-white sm:text-5xl lg:text-6xl">{{ $banner->title }}</h2>
-                            @if ($banner->subtitle)
-                                <p class="mt-5 max-w-2xl text-lg text-cream/90 sm:text-xl">{{ $banner->subtitle }}</p>
-                            @endif
-                            @if ($banner->cta_label && $banner->cta_url)
-                                <div class="mt-8">
-                                    <a href="{{ $banner->cta_url }}" class="inline-flex min-h-12 items-center gap-2 rounded-control bg-brand px-6 py-3 font-bold text-earth shadow-lg transition hover:bg-white"
-                                       @if (str_starts_with($banner->cta_url, 'https://')) target="_blank" rel="noopener" @endif>
-                                        {{ $banner->cta_label }} <x-ui.icon name="arrow-right" class="size-5" />
-                                    </a>
-                                </div>
-                            @endif
-                        </div>
-                    </div>
-                @endforeach
-            </div>
-
-            @if ($banners->count() > 1)
-                <div class="absolute inset-x-0 bottom-20 z-20 sm:bottom-24">
-                    <div class="container-content flex items-center gap-3">
-                        <button type="button" x-on:click="prev(); start()" class="inline-flex size-11 items-center justify-center rounded-full bg-white/15 backdrop-blur hover:bg-white/30" aria-label="Diapositiva anterior">
-                            <x-ui.icon name="chevron-left" class="size-5" />
-                        </button>
-                        <div class="flex items-center gap-2">
-                            @foreach ($banners as $banner)
-                                <button type="button" x-on:click="go({{ $loop->index }})" class="flex size-6 items-center justify-center" aria-label="Ir a la diapositiva {{ $loop->iteration }}"
-                                        x-bind:aria-current="active === {{ $loop->index }} ? 'true' : 'false'">
-                                    <span class="block h-2 rounded-full bg-white transition-all" x-bind:class="active === {{ $loop->index }} ? 'w-6' : 'w-2 opacity-50'"></span>
-                                </button>
-                            @endforeach
-                        </div>
-                        <button type="button" x-on:click="next(); start()" class="inline-flex size-11 items-center justify-center rounded-full bg-white/15 backdrop-blur hover:bg-white/30" aria-label="Diapositiva siguiente">
-                            <x-ui.icon name="chevron-right" class="size-5" />
-                        </button>
-                        <button type="button" x-on:click="toggle()" class="ms-auto inline-flex size-11 items-center justify-center rounded-full bg-white/15 backdrop-blur hover:bg-white/30"
-                                x-bind:aria-label="playing ? 'Pausar carrusel' : 'Reproducir carrusel'" aria-label="Pausar carrusel">
-                            <span x-show="playing"><x-ui.icon name="pause" class="size-5" /></span>
-                            <span x-show="! playing" x-cloak><x-ui.icon name="play" class="size-5" /></span>
-                        </button>
-                    </div>
-                </div>
-            @endif
-        </section>
+        <h1 class="sr-only">{{ $site->church_name }}</h1>
+        @include('pages.partials.banner-carousel', ['banners' => $banners])
     @else
-        <section class="relative isolate overflow-hidden bg-linear-to-br from-earth via-[#5a2712] to-navy text-white">
-            <div class="absolute -top-24 -right-24 -z-10 size-112 rounded-full bg-brand/30 blur-3xl" aria-hidden="true"></div>
-            <x-ui.mountains class="absolute inset-x-0 bottom-0 -z-10 h-40 text-[#3d1a0b] sm:h-60" />
+        <section class="relative isolate overflow-hidden bg-primary text-white">
+            <div class="absolute -top-32 -right-24 -z-10 size-112 rounded-full bg-brand/20 blur-3xl" aria-hidden="true"></div>
+            <x-ui.mountains class="absolute inset-x-0 bottom-0 -z-10 h-40 text-primary-deep/50 sm:h-56" />
 
-            <div class="container-content pt-20 pb-36 sm:pt-28 sm:pb-48">
-                <p class="text-sm font-semibold tracking-[0.2em] text-brand uppercase">{{ $settings->organization }} · {{ $settings->city }}</p>
-                <h1 class="mt-4 max-w-4xl font-display text-4xl leading-tight font-extrabold text-white sm:text-6xl lg:text-7xl">
-                    {{ $settings->name }}
-                    <span class="mt-2 block text-brand">«{{ $settings->theme }}»</span>
-                </h1>
-                <p class="mt-6 max-w-2xl text-lg text-cream/90 sm:text-xl">
-                    {{ $settings->dateRangeLabel() }}{{ $mainVenue ? ' · '.$mainVenue->name : '' }}
-                </p>
+            <div class="container-content pt-40 pb-44 sm:pt-48 sm:pb-52">
+                <p class="text-sm font-semibold tracking-[0.2em] text-brand uppercase">Bienvenidos</p>
+                <h1 class="mt-4 max-w-3xl font-display text-4xl leading-tight font-bold text-white sm:text-6xl">{{ $site->church_name }}</h1>
+                @if ($site->tagline)
+                    <p class="mt-6 max-w-2xl text-lg text-cream/90 sm:text-xl">{{ $site->tagline }}</p>
+                @endif
                 <div class="mt-9 flex flex-wrap gap-3">
-                    <a href="{{ route('program') }}" class="inline-flex min-h-12 items-center gap-2 rounded-control bg-brand px-6 py-3 font-bold text-earth shadow-lg transition hover:bg-white">
-                        Ver programa <x-ui.icon name="arrow-right" class="size-5" />
+                    <a href="{{ route('teachings.index') }}" class="inline-flex min-h-12 items-center rounded-full bg-brand-strong px-6 py-3 text-sm font-bold tracking-wide text-white uppercase shadow-lg transition hover:bg-brand hover:text-primary">
+                        Ver enseñanzas
                     </a>
-                    <a href="{{ route('venue') }}" class="inline-flex min-h-12 items-center gap-2 rounded-control border border-white/40 px-6 py-3 font-bold text-white transition hover:bg-white/10">
-                        Cómo llegar
+                    <a href="#visitanos" class="inline-flex min-h-12 items-center rounded-full border border-white/50 px-6 py-3 text-sm font-semibold text-white transition hover:bg-white/10">
+                        Planifica tu visita
                     </a>
                 </div>
             </div>
         </section>
     @endif
 
-    {{-- ===== Datos clave ===== --}}
-    <section class="relative z-30 -mt-14 sm:-mt-16" aria-label="Datos clave">
+    {{-- ===== 2. Accesos destacados: una franja blanca dividida en tres ===== --}}
+    @php
+        $highlightCards = [
+            ['url' => route('teachings.index'), 'icon' => 'book', 'label' => 'Palabra', 'title' => 'Enseñanzas', 'text' => 'Predicaciones y estudios'],
+            ['url' => route('bethel'), 'icon' => 'tv', 'label' => 'En vivo', 'title' => 'Bethel TV', 'text' => 'Señal del canal oficial'],
+            $featured && ! $featured->isOver()
+                ? ['url' => route('events.show', $featured), 'icon' => 'calendar', 'label' => 'Próximo evento', 'title' => $featured->title, 'text' => $featured->dateLabel() ?: ($featured->city ?? 'Conoce los detalles')]
+                : ['url' => route('events.index'), 'icon' => 'calendar', 'label' => 'Agenda', 'title' => 'Eventos', 'text' => 'Actividades de la iglesia'],
+        ];
+    @endphp
+    {{-- Va debajo del carrusel, sin montarse encima: los banners (afiches) se ven completos. --}}
+    <section class="relative z-30 bg-cream pt-6 sm:pt-8" aria-label="Accesos destacados">
         <div class="container-content">
-            <dl class="grid gap-3 rounded-card bg-white p-3 shadow-xl ring-1 ring-black/5 sm:grid-cols-3 sm:p-4">
-                @foreach ([
-                    ['icon' => 'calendar', 'label' => 'Fechas', 'value' => $settings->dateRangeLabel()],
-                    ['icon' => 'map-pin', 'label' => 'Sede', 'value' => ($mainVenue?->name ? $mainVenue->name.', ' : '').$settings->city],
-                    ['icon' => 'clock', 'label' => 'Cuenta atrás', 'value' => $settings->countdownLabel()],
-                ] as $fact)
-                    <div class="flex items-center gap-4 rounded-control p-3">
-                        <span class="flex size-12 shrink-0 items-center justify-center rounded-full bg-cream text-brand-strong">
-                            <x-ui.icon :name="$fact['icon']" />
-                        </span>
-                        <div>
-                            <dt class="text-xs font-semibold tracking-wide text-muted uppercase">{{ $fact['label'] }}</dt>
-                            <dd class="font-display text-base font-bold text-earth sm:text-lg">{{ $fact['value'] }}</dd>
-                        </div>
-                    </div>
-                @endforeach
-            </dl>
-        </div>
-    </section>
-
-    {{-- ===== Bienvenida ===== --}}
-    @if ($settings->summary)
-        <section class="container-content py-16 sm:py-20">
-            <div class="grid gap-8 lg:grid-cols-[1fr_20rem] lg:items-center">
-                <div>
-                    <p class="text-sm font-semibold tracking-[0.2em] text-brand-strong uppercase">Bienvenidos</p>
-                    <div class="mt-3 text-lg leading-relaxed text-ink whitespace-pre-line sm:text-xl">{{ $settings->summary }}</div>
-                </div>
-                <blockquote class="rounded-card bg-cream p-6 text-center">
-                    <p class="text-xs font-semibold tracking-wide text-muted uppercase">Tema de la convención</p>
-                    <p class="mt-2 font-display text-2xl font-extrabold text-earth">«{{ $settings->theme }}»</p>
-                </blockquote>
-            </div>
-        </section>
-    @else
-        <div class="h-12 sm:h-16" aria-hidden="true"></div>
-    @endif
-
-    {{-- ===== Reservas de comida ===== --}}
-    @if ($featuredOfferings->isNotEmpty())
-        <section class="bg-cream py-16 sm:py-20" aria-labelledby="reservas-titulo">
-            <div class="container-content">
-                <div class="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
-                    <div>
-                        <p class="text-sm font-semibold tracking-[0.2em] text-brand-strong uppercase">Alimentación</p>
-                        <h2 id="reservas-titulo" class="mt-2 text-3xl font-extrabold sm:text-4xl">Reserva tu comida</h2>
-                        <p class="mt-2 max-w-xl text-muted">Asegura tu plato con anticipación y recógelo con tu código QR. Lo recaudado apoya la obra.</p>
-                    </div>
-                    <x-ui.button href="{{ route('dishes.index') }}">Reservar ahora <x-ui.icon name="arrow-right" class="size-5" /></x-ui.button>
-                </div>
-
-                <ul class="mt-8 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-                    @foreach ($featuredOfferings as $offering)
-                        <li class="group overflow-hidden rounded-card bg-white shadow-card transition hover:-translate-y-1 hover:shadow-xl">
-                            <a href="{{ route('dishes.index') }}" class="block">
-                                @if ($offering->dish->imageUrl())
-                                    <img src="{{ $offering->dish->imageUrl() }}" alt="{{ $offering->dish->image_alt ?? '' }}" width="640" height="400" class="aspect-16/10 w-full object-cover" loading="lazy" decoding="async">
-                                @else
-                                    <div class="flex aspect-16/10 items-center justify-center bg-linear-to-br from-brand/20 to-cream text-brand-strong"><x-ui.icon name="utensils" class="size-12" /></div>
-                                @endif
-                                <div class="flex items-start justify-between gap-3 p-5">
-                                    <div>
-                                        <h3 class="font-sans text-lg font-bold text-ink group-hover:text-brand-strong">{{ $offering->dish->name }}</h3>
-                                        <p class="text-sm text-muted">{{ $offering->dateLabel() }}</p>
-                                    </div>
-                                    <p class="shrink-0 font-display text-xl font-extrabold text-brand-strong">S/ {{ number_format((float) $offering->price, 2) }}</p>
-                                </div>
-                            </a>
-                        </li>
-                    @endforeach
-                </ul>
-            </div>
-        </section>
-    @endif
-
-    {{-- ===== Programa ===== --}}
-    <section class="container-content py-16 sm:py-20" aria-labelledby="programa-titulo">
-        <div class="grid gap-10 lg:grid-cols-[20rem_1fr]">
-            <div>
-                <p class="text-sm font-semibold tracking-[0.2em] text-brand-strong uppercase">Programa</p>
-                <h2 id="programa-titulo" class="mt-2 text-3xl font-extrabold sm:text-4xl">Cuatro días de bendición</h2>
-                <p class="mt-3 text-muted">Consulta horarios, predicadores y actividades de cada jornada.</p>
-                <x-ui.button href="{{ route('program') }}" variant="secondary" class="mt-6">Programa completo <x-ui.icon name="arrow-right" class="size-5" /></x-ui.button>
-            </div>
-
-            @if ($nextDay)
-                <div class="rounded-card border border-line bg-white">
-                    <h3 class="border-b border-line px-5 py-4 font-display text-lg font-bold text-earth">{{ $nextDay->label() }}</h3>
-                    <ol class="divide-y divide-line">
-                        @foreach ($nextDay->items as $item)
-                            <li class="flex gap-4 px-5 py-4">
-                                <span class="w-24 shrink-0 font-semibold tabular-nums text-brand-strong">{{ $item->timeLabel() }}</span>
-                                <span>
-                                    <span class="block font-semibold">{{ $item->title }}</span>
-                                    @if ($item->speaker)<span class="text-sm text-muted">{{ $item->speaker }}</span>@endif
-                                </span>
-                            </li>
-                        @endforeach
-                    </ol>
-                </div>
-            @else
-                <div class="flex items-center gap-4 rounded-card border border-dashed border-stone-300 bg-white p-8">
-                    <x-ui.icon name="list" class="size-10 text-brand-strong" />
-                    <p class="text-muted">El programa detallado se publicará en cuanto la organización lo confirme.</p>
-                </div>
-            @endif
-        </div>
-    </section>
-
-    {{-- ===== Accesos rápidos ===== --}}
-    <section class="bg-stone-50 py-16 sm:py-20" aria-labelledby="accesos">
-        <div class="container-content">
-            <h2 id="accesos" class="text-3xl font-extrabold sm:text-4xl">Todo para tu visita</h2>
-            @php
-                $shortcuts = [
-                    ['route' => 'venue', 'icon' => 'map-pin', 'title' => 'Sede y cómo llegar', 'text' => 'Ubicación, mapa e indicaciones.'],
-                    ['route' => 'dishes.index', 'icon' => 'utensils', 'title' => 'Reservas de comida', 'text' => 'Elige tu plato y recógelo con QR.'],
-                    ['route' => 'donations', 'icon' => 'heart', 'title' => 'Donaciones', 'text' => 'Métodos oficiales para tu aporte.'],
-                    ['route' => 'accommodations', 'icon' => 'bed', 'title' => 'Hospedaje', 'text' => 'Opciones de alojamiento en la ciudad.'],
-                    ['route' => 'tourism', 'icon' => 'mountain', 'title' => 'Descubre Huaraz', 'text' => 'Lagunas, nevados y cultura andina.'],
-                    ['route' => 'contact', 'icon' => 'chat', 'title' => 'Contacto', 'text' => 'Teléfonos, WhatsApp y preguntas frecuentes.'],
-                ];
-            @endphp
-            <ul class="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-                @foreach ($shortcuts as $shortcut)
+            <ul class="grid divide-y divide-line overflow-hidden rounded-card bg-white shadow-[0_18px_40px_-18px_rgb(57_49_45/0.35)] ring-1 ring-black/5 sm:grid-cols-3 sm:divide-x sm:divide-y-0">
+                @foreach ($highlightCards as $card)
                     <li>
-                        <a href="{{ route($shortcut['route']) }}" class="group flex h-full items-start gap-4 rounded-card bg-white p-5 shadow-sm ring-1 ring-black/5 transition hover:-translate-y-0.5 hover:shadow-card">
-                            <span class="flex size-12 shrink-0 items-center justify-center rounded-control bg-cream text-brand-strong transition group-hover:bg-brand-strong group-hover:text-white">
-                                <x-ui.icon :name="$shortcut['icon']" />
+                        <a href="{{ $card['url'] }}" class="group flex h-full items-center gap-4 px-5 py-5 transition-colors hover:bg-cream-light sm:px-6 sm:py-6">
+                            <span class="inline-flex size-12 shrink-0 items-center justify-center rounded-full bg-cream text-brand-strong transition-colors group-hover:bg-brand-strong group-hover:text-white">
+                                <x-ui.icon :name="$card['icon']" class="size-5" />
                             </span>
-                            <span>
-                                <span class="block font-display text-lg font-bold text-earth">{{ $shortcut['title'] }}</span>
-                                <span class="mt-1 block text-sm text-muted">{{ $shortcut['text'] }}</span>
+                            <span class="min-w-0 flex-1">
+                                <span class="block text-xs font-semibold tracking-[0.14em] text-primary-soft uppercase">{{ $card['label'] }}</span>
+                                <span class="mt-0.5 block font-display text-lg leading-snug font-bold text-primary">{{ $card['title'] }}</span>
+                                <span class="block text-sm text-muted">{{ $card['text'] }}</span>
                             </span>
+                            <x-ui.icon name="arrow-right" class="size-5 shrink-0 text-primary-soft transition group-hover:translate-x-1 group-hover:text-brand-strong" />
                         </a>
                     </li>
                 @endforeach
@@ -252,58 +59,265 @@
         </div>
     </section>
 
-    {{-- ===== Donaciones ===== --}}
-    <section class="relative isolate overflow-hidden bg-earth py-16 text-white sm:py-20" aria-labelledby="donar-titulo">
-        <x-ui.mountains class="absolute inset-x-0 bottom-0 -z-10 h-32 text-[#5a2712]" />
-        <div class="container-content flex flex-col gap-6 lg:flex-row lg:items-center lg:justify-between">
-            <div class="max-w-2xl">
-                <h2 id="donar-titulo" class="text-3xl font-extrabold text-white sm:text-4xl">Sé parte de esta obra</h2>
-                <p class="mt-3 text-lg text-cream/90">Tu ofrenda ayuda a recibir a miles de familias en {{ $settings->city }}. Aporta únicamente por los medios oficiales publicados.</p>
+    {{-- ===== 3. Nuestra familia ===== --}}
+    <section class="bg-cream pt-16 pb-20 sm:pt-20 sm:pb-24" aria-labelledby="familia-titulo">
+        <div class="container-content grid gap-12 lg:grid-cols-2 lg:items-center">
+            <div>
+                <x-ui.section-label>Nuestra familia</x-ui.section-label>
+                <h2 id="familia-titulo" class="mt-3 text-3xl leading-tight font-bold sm:text-4xl">{{ $site->tagline ?: 'Una iglesia que te espera con las puertas abiertas' }}</h2>
+                @if ($site->welcome_text)
+                    <div class="mt-6 text-lg leading-relaxed whitespace-pre-line text-ink/80">{{ $site->welcome_text }}</div>
+                @endif
+                @if ($verse)
+                    <figure class="mt-8 border-s-4 border-brand ps-5">
+                        <blockquote class="font-display text-lg leading-relaxed font-semibold text-primary">«{{ $verse->text }}»</blockquote>
+                        <figcaption class="mt-2 text-sm text-muted">{{ $verse->reference }}@if ($verse->version) · {{ $verse->version }}@endif</figcaption>
+                    </figure>
+                @endif
+                <a href="{{ route('about') }}" class="mt-8 inline-flex min-h-11 items-center gap-2 rounded-full bg-primary px-6 text-sm font-semibold text-white transition hover:bg-brand-strong">
+                    Conócenos <x-ui.icon name="arrow-right" class="size-4" />
+                </a>
             </div>
-            <a href="{{ route('donations') }}" class="inline-flex min-h-12 shrink-0 items-center gap-2 self-start rounded-control bg-brand px-6 py-3 font-bold text-earth shadow-lg transition hover:bg-white lg:self-auto">
-                <x-ui.icon name="heart" class="size-5" /> Quiero donar
-            </a>
+
+            {{-- Collage de formas orgánicas (fotos de Panel › Fotos «Nuestra familia») --}}
+            @if ($gallery->count() === 1)
+                <div class="mx-auto aspect-square w-full max-w-md overflow-hidden rounded-[58%_42%_47%_53%/52%_44%_56%_48%] bg-primary/10 shadow-lg">
+                    <img src="{{ $gallery[0]['url'] }}" alt="{{ $gallery[0]['alt'] }}" class="size-full object-cover" loading="lazy" decoding="async">
+                </div>
+            @elseif ($gallery->count() > 1)
+                @php
+                    $shapes = [
+                        'rounded-[58%_42%_47%_53%/52%_44%_56%_48%] col-span-2 row-span-2',
+                        'rounded-[46%_54%_60%_40%/55%_45%_55%_45%]',
+                        'rounded-[62%_38%_44%_56%/48%_58%_42%_52%]',
+                        'rounded-[50%_50%_38%_62%/60%_40%_60%_40%] col-span-2',
+                    ];
+                @endphp
+                <div class="grid grid-cols-4 grid-rows-3 gap-3 sm:gap-4">
+                    @foreach ($gallery as $image)
+                        <div @class(['overflow-hidden bg-primary/10 shadow-lg', $shapes[$loop->index]])>
+                            <img src="{{ $image['url'] }}" alt="{{ $image['alt'] }}" class="size-full min-h-28 object-cover" loading="lazy" decoding="async">
+                        </div>
+                    @endforeach
+                </div>
+            @else
+                <div class="relative mx-auto aspect-square w-full max-w-md" aria-hidden="true">
+                    <div class="absolute inset-0 rounded-[58%_42%_47%_53%/52%_44%_56%_48%] bg-primary"></div>
+                    <div class="absolute inset-8 rounded-[46%_54%_60%_40%/55%_45%_55%_45%] bg-brand-strong/80"></div>
+                    <x-ui.mountains class="absolute inset-x-8 bottom-16 h-32 text-primary-deep/70" />
+                    <span class="absolute inset-0 flex items-center justify-center font-display text-7xl font-bold text-cream">MMM</span>
+                </div>
+            @endif
+        </div>
+
+        {{-- Lema del año, discreto, en el espacio final de la sección --}}
+        @if ($motto)
+            <div class="container-content">
+                @include('pages.partials.motto', ['motto' => $motto])
+            </div>
+        @endif
+    </section>
+
+    {{-- ===== 4. Da el siguiente paso: texto a la izquierda, pasos numerados a la derecha ===== --}}
+    <section class="bg-sand py-20 sm:py-28" aria-labelledby="pasos-titulo">
+        <div class="container-content grid gap-12 lg:grid-cols-[minmax(0,5fr)_minmax(0,7fr)] lg:items-center lg:gap-16">
+            <div>
+                <x-ui.section-label>Tus próximos pasos</x-ui.section-label>
+                <h2 id="pasos-titulo" class="mt-3 text-4xl leading-tight font-bold sm:text-5xl">Da el siguiente paso</h2>
+                <p class="mt-5 max-w-md text-lg leading-relaxed text-muted">
+                    Acércate a la Palabra, vive con nosotros cada actividad y escríbenos cuando lo necesites. Hay un lugar para ti y tu familia.
+                </p>
+                <a href="#visitanos" class="mt-8 inline-flex min-h-12 items-center gap-2 rounded-full bg-primary px-6 py-3 text-sm font-bold text-white transition hover:bg-brand-strong">
+                    Planifica tu visita <x-ui.icon name="arrow-right" class="size-4" />
+                </a>
+            </div>
+
+            <ol class="divide-y divide-sand-dark overflow-hidden rounded-card bg-white shadow-[0_24px_50px_-30px_rgb(57_49_45/0.45)] ring-1 ring-black/5">
+                @foreach ([
+                    ['url' => route('bible.index'), 'icon' => 'book', 'title' => 'Lee la Biblia', 'text' => 'Los 66 libros, capítulo por capítulo, y búsqueda por palabras.'],
+                    ['url' => route('events.index'), 'icon' => 'calendar', 'title' => 'Participa', 'text' => 'Convenciones, campañas, vigilias y actividades de la iglesia.'],
+                    ['url' => route('contact'), 'icon' => 'chat', 'title' => 'Escríbenos', 'text' => 'Contacto, horarios de culto y preguntas frecuentes.'],
+                ] as $step)
+                    <li>
+                        <a href="{{ $step['url'] }}" class="group flex items-center gap-5 p-6 transition-colors hover:bg-cream-light sm:gap-7 sm:p-8">
+                            <span class="hidden font-display text-5xl leading-none font-black text-sand-dark tabular-nums transition-colors group-hover:text-brand sm:block" aria-hidden="true">{{ str_pad($loop->iteration, 2, '0', STR_PAD_LEFT) }}</span>
+                            <span class="flex size-12 shrink-0 items-center justify-center rounded-full bg-cream text-brand-strong transition-colors group-hover:bg-brand-strong group-hover:text-white">
+                                <x-ui.icon :name="$step['icon']" class="size-5" />
+                            </span>
+                            <span class="min-w-0 flex-1">
+                                <span class="block font-display text-xl font-bold text-primary">{{ $step['title'] }}</span>
+                                <span class="mt-1 block text-sm leading-relaxed text-muted">{{ $step['text'] }}</span>
+                            </span>
+                            <span class="flex size-10 shrink-0 items-center justify-center rounded-full text-primary-soft ring-1 ring-sand-dark transition group-hover:translate-x-1 group-hover:bg-primary group-hover:text-white group-hover:ring-primary">
+                                <x-ui.icon name="arrow-right" class="size-4" />
+                            </span>
+                        </a>
+                    </li>
+                @endforeach
+            </ol>
         </div>
     </section>
 
-    {{-- ===== Turismo ===== --}}
-    @if ($places->isNotEmpty())
-        <section class="container-content py-16 sm:py-20" aria-labelledby="turismo-titulo">
-            <div class="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
-                <div>
-                    <p class="text-sm font-semibold tracking-[0.2em] text-brand-strong uppercase">Turismo</p>
-                    <h2 id="turismo-titulo" class="mt-2 text-3xl font-extrabold sm:text-4xl">Descubre {{ $settings->city }}</h2>
+    {{-- ===== 5. Enseñanzas recientes (sección oscura con tarjetas de imagen) ===== --}}
+    @if ($teachings->isNotEmpty())
+        <section class="relative bg-primary py-24 text-white sm:py-32" aria-labelledby="ensenanzas-titulo">
+            <x-ui.curve position="top" class="text-sand" />
+            <x-ui.curve position="bottom" class="text-cream" />
+            <div class="container-content">
+                <div class="text-center">
+                    <x-ui.section-label :dark="true">Palabra</x-ui.section-label>
+                    <h2 id="ensenanzas-titulo" class="mt-3 text-3xl font-bold text-white sm:text-4xl">Enseñanzas recientes</h2>
+                    <p class="mx-auto mt-3 max-w-xl text-cream/80">Predicaciones, estudios bíblicos y devocionales para tu crecimiento espiritual.</p>
                 </div>
-                <a href="{{ route('tourism') }}" class="font-semibold text-brand-strong underline-offset-4 hover:underline">Ver todos los lugares</a>
+                <ul class="mt-12 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                    @foreach ($teachings as $teaching)
+                        @php
+                            $cover = $teaching->imageUrl() ?? ($teaching->video_id ? "https://i.ytimg.com/vi/{$teaching->video_id}/hqdefault.jpg" : null);
+                        @endphp
+                        <li>
+                            <a href="{{ route('teachings.show', $teaching->slug) }}" class="group relative flex aspect-16/10 overflow-hidden rounded-card bg-black/30 ring-1 ring-white/10">
+                                @if ($cover)
+                                    <img src="{{ $cover }}" alt="" class="absolute inset-0 size-full object-cover opacity-60 transition duration-500 group-hover:scale-105 group-hover:opacity-75" loading="lazy" decoding="async">
+                                @else
+                                    <x-ui.mountains class="absolute inset-x-0 bottom-0 h-24 text-primary-deep/60" />
+                                @endif
+                                <div class="absolute inset-0 bg-linear-to-t from-black/80 via-black/40 to-transparent"></div>
+                                <div class="relative mt-auto flex w-full items-end justify-between gap-3 p-5">
+                                    <span>
+                                        <span class="block text-xs font-semibold tracking-wide text-brand uppercase">{{ $teaching->category->label() }} · {{ $teaching->published_on->translatedFormat('j M Y') }}</span>
+                                        <span class="mt-1 block font-display text-lg leading-snug font-bold text-white">{{ $teaching->title }}</span>
+                                    </span>
+                                    <span class="flex size-10 shrink-0 items-center justify-center rounded-full bg-brand-strong text-white transition group-hover:bg-brand group-hover:text-primary">
+                                        <x-ui.icon name="chevron-right" class="size-5" />
+                                    </span>
+                                </div>
+                            </a>
+                        </li>
+                    @endforeach
+                </ul>
+                <div class="mt-10 text-center">
+                    <a href="{{ route('teachings.index') }}" class="inline-flex min-h-11 items-center gap-2 rounded-full px-6 text-sm font-bold tracking-wide text-brand uppercase transition hover:bg-white/10">
+                        Ver más enseñanzas <x-ui.icon name="arrow-right" class="size-4" />
+                    </a>
+                </div>
             </div>
-            <ul class="mt-8 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-                @foreach ($places as $place)
-                    <li class="group relative overflow-hidden rounded-card bg-earth">
-                        @if ($place->imageUrl())
-                            <img src="{{ $place->imageUrl() }}" alt="{{ $place->image_alt ?? '' }}" width="800" height="600" class="aspect-4/3 w-full object-cover transition duration-500 group-hover:scale-105" loading="lazy" decoding="async">
-                        @else
-                            <div class="aspect-4/3 bg-linear-to-br from-earth to-navy"></div>
-                        @endif
-                        <div class="absolute inset-0 flex flex-col justify-end bg-linear-to-t from-black/75 via-black/20 to-transparent p-5 text-white">
-                            <h3 class="font-display text-xl font-bold text-white">{{ $place->name }}</h3>
-                            @if ($place->distance_note)<p class="text-sm text-cream/90">{{ $place->distance_note }}</p>@endif
-                        </div>
-                    </li>
-                @endforeach
-            </ul>
         </section>
     @endif
 
-    {{-- ===== Preguntas frecuentes ===== --}}
-    @if ($faqs->isNotEmpty())
-        <section class="bg-stone-50 py-16 sm:py-20" aria-labelledby="preguntas">
-            <div class="container-content grid gap-8 lg:grid-cols-[20rem_1fr]">
-                <div>
-                    <h2 id="preguntas" class="text-3xl font-extrabold sm:text-4xl">Preguntas frecuentes</h2>
-                    <a href="{{ route('contact') }}" class="mt-4 inline-block font-semibold text-brand-strong underline-offset-4 hover:underline">Ver todas y contactar</a>
+    {{-- ===== 6. Visítanos: horarios y contacto + evento ===== --}}
+    @php
+        $spotlight = ($featured && ! $featured->isOver()) ? $featured : $nextEvent;
+    @endphp
+    <section id="visitanos" class="scroll-mt-20 bg-cream py-20 sm:py-24" aria-labelledby="visitanos-titulo">
+        <div class="container-content grid gap-12 lg:grid-cols-2 lg:items-center">
+            <div>
+                <h2 id="visitanos-titulo" class="text-3xl leading-tight font-bold sm:text-5xl">Visítanos</h2>
+
+                <h3 class="mt-8 font-display text-lg font-bold text-primary">Horario de cultos</h3>
+                @if ($site->scheduleLines())
+                    <ul class="mt-3 space-y-2">
+                        @foreach ($site->scheduleLines() as $line)
+                            <li class="flex items-start gap-2"><x-ui.icon name="clock" class="mt-0.5 size-5 text-brand-strong" /> {{ $line }}</li>
+                        @endforeach
+                    </ul>
+                @else
+                    <p class="mt-3 text-muted">Los horarios se publicarán aquí en cuanto la iglesia los confirme.</p>
+                @endif
+
+                <div class="mt-8">
+                    @include('pages.partials.church-location')
                 </div>
-                @include('pages.partials.faq-list', ['faqs' => $faqs])
+
+                <h3 class="mt-8 font-display text-lg font-bold text-primary">¿Tienes preguntas?</h3>
+                <p class="mt-2 text-muted">Escríbenos y te ayudamos a planificar tu visita.</p>
+                <div class="mt-5 flex flex-wrap gap-3">
+                    @if ($site->whatsappUrl())
+                        <a href="{{ $site->whatsappUrl() }}" target="_blank" rel="noopener" class="inline-flex min-h-11 items-center gap-2 rounded-full bg-primary px-6 text-sm font-semibold text-white transition hover:bg-brand-strong">
+                            Escríbenos por WhatsApp<span class="sr-only"> (pestaña nueva)</span>
+                        </a>
+                    @endif
+                    <a href="{{ route('contact') }}" class="inline-flex min-h-11 items-center gap-2 rounded-full border border-primary px-6 text-sm font-semibold text-primary transition hover:bg-white">
+                        Contacto
+                    </a>
+                </div>
             </div>
-        </section>
-    @endif
+
+            @if ($spotlight)
+                <a href="{{ route('events.show', $spotlight) }}" class="group block overflow-hidden rounded-card bg-white shadow-xl ring-1 ring-black/5 transition hover:-translate-y-1">
+                    <div class="relative aspect-video bg-primary">
+                        @if ($spotlight->imageUrl())
+                            <img src="{{ $spotlight->imageUrl() }}" alt="{{ $spotlight->image_alt ?? '' }}" class="size-full object-cover" loading="lazy" decoding="async">
+                        @else
+                            <div class="absolute inset-0 bg-linear-to-br from-primary to-primary-deep"></div>
+                            <x-ui.mountains class="absolute inset-x-0 bottom-0 h-28 text-primary-deep" />
+                        @endif
+                        @if ($spotlight->countdownLabel())
+                            <span class="absolute top-4 left-4 rounded-full bg-white/95 px-3 py-1 text-xs font-bold text-primary">{{ $spotlight->countdownLabel() }}</span>
+                        @endif
+                    </div>
+                    <div class="p-6">
+                        <p class="text-xs font-semibold tracking-wide text-brand-strong uppercase">Próximo evento</p>
+                        <p class="mt-1 font-display text-2xl font-bold text-primary">{{ $spotlight->title }}</p>
+                        <p class="mt-1 text-muted">{{ collect([$spotlight->dateLabel(), $spotlight->location ?? $spotlight->city])->filter()->join(' · ') }}</p>
+                        <span class="mt-5 inline-flex items-center gap-1 text-sm font-semibold text-brand-strong">
+                            Ver el evento <x-ui.icon name="arrow-right" class="size-4 transition group-hover:translate-x-1" />
+                        </span>
+                    </div>
+                </a>
+            @endif
+        </div>
+    </section>
+
+    {{-- ===== 7. Medios oficiales del movimiento ===== --}}
+    <section class="relative bg-sand pt-24 pb-16 sm:pt-32" aria-labelledby="medios-titulo">
+        <x-ui.curve position="top" class="text-cream" />
+        <div class="container-content">
+            <div class="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+                <div>
+                    <x-ui.section-label>Medios</x-ui.section-label>
+                    <h2 id="medios-titulo" class="mt-3 text-3xl font-bold sm:text-4xl">Mantente conectado</h2>
+                </div>
+            </div>
+
+            @if ($media->isNotEmpty())
+                <ul class="mt-10 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+                    @foreach ($media as $medium)
+                        <li>
+                            <a href="{{ $medium->href() }}" @if ($medium->isExternal()) target="_blank" rel="noopener" @endif class="group block text-center">
+                                <span class="flex aspect-3/2 items-center justify-center overflow-hidden rounded-card bg-primary shadow-card ring-1 ring-black/5 transition duration-300 group-hover:-translate-y-1 group-hover:shadow-xl"
+                                      @if ($medium->background_color) style="background-color: {{ $medium->background_color }}" @endif>
+                                    @if ($medium->imageUrl())
+                                        {{-- Logotipo a su tamaño (sin ampliar): el color de fondo rellena la tarjeta. --}}
+                                        <img src="{{ $medium->imageUrl() }}" alt="{{ $medium->image_alt ?? '' }}" width="250" height="250"
+                                             class="h-full max-h-64 w-auto object-contain transition duration-300 group-hover:scale-105" loading="lazy" decoding="async">
+                                    @else
+                                        <span class="font-display text-2xl font-bold text-white">{{ $medium->name }}</span>
+                                    @endif
+                                </span>
+                                <span class="mt-4 inline-flex items-center gap-1.5 font-display text-lg font-bold text-primary transition group-hover:text-brand-strong">
+                                    {{ $medium->name }}
+                                    @if ($medium->isExternal())
+                                        <x-ui.icon name="external" class="size-4 opacity-60" /><span class="sr-only"> (sitio oficial, pestaña nueva)</span>
+                                    @endif
+                                </span>
+                            </a>
+                        </li>
+                    @endforeach
+                </ul>
+            @endif
+
+            @if ($site->socialLinks())
+                <ul class="mt-10 flex flex-wrap items-center gap-3 border-t border-sand-dark pt-8">
+                    <li class="me-2 text-sm text-muted">Síguenos:</li>
+                    @foreach ($site->socialLinks() as $network => $url)
+                        <li>
+                            <a href="{{ $url }}" target="_blank" rel="noopener" class="inline-flex min-h-10 items-center rounded-full border border-primary/30 px-4 text-sm font-semibold text-primary transition hover:bg-white">
+                                {{ $network }}<span class="sr-only"> (pestaña nueva)</span>
+                            </a>
+                        </li>
+                    @endforeach
+                </ul>
+            @endif
+        </div>
+    </section>
 </x-layouts.public>

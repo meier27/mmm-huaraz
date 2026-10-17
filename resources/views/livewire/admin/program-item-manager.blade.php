@@ -1,7 +1,9 @@
 <div>
+    <x-admin.event-tabs :event="$this->event" />
+
     <x-admin.page-header title="Programa" description="Actividades por día. Solo las publicadas se muestran en la web.">
         <x-slot:actions>
-            <x-ui.button variant="secondary" href="{{ route('admin.program-days') }}" wire:navigate>Gestionar días</x-ui.button>
+            <x-ui.button variant="secondary" href="{{ route('admin.events.program-days', $this->event) }}" wire:navigate>Gestionar días</x-ui.button>
             <x-ui.button wire:click="create" :disabled="$days->isEmpty()">Nueva actividad</x-ui.button>
         </x-slot:actions>
     </x-admin.page-header>

@@ -3,6 +3,7 @@
 namespace App\Livewire\Forms;
 
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Validation\Rule;
 
 class ProgramItemForm extends ContentForm
 {
@@ -25,8 +26,9 @@ class ProgramItemForm extends ContentForm
     protected function rules(): array
     {
         return [
-            'program_day_id' => ['required', 'integer', 'exists:program_days,id'],
-            'venue_id' => ['nullable', 'integer', 'exists:venues,id'],
+            // Solo días y sedes del evento que se está editando.
+            'program_day_id' => ['required', 'integer', Rule::exists('program_days', 'id')->where('church_event_id', $this->getComponent()->eventId)],
+            'venue_id' => ['nullable', 'integer', Rule::exists('venues', 'id')->where('church_event_id', $this->getComponent()->eventId)],
             'starts_at' => ['required', 'date_format:H:i,H:i:s'],
             'ends_at' => ['nullable', 'date_format:H:i,H:i:s', 'after:starts_at'],
             'title' => ['required', 'string', 'max:150'],

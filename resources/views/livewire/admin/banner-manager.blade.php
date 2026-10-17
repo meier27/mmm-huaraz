@@ -7,7 +7,7 @@
 
     @if ($showForm)
         <x-admin.form-panel :title="$editingId ? 'Editar banner' : 'Nuevo banner'">
-            <x-admin.input label="Título" model="form.title" class="sm:col-span-2" />
+            <x-admin.input label="Título (opcional)" model="form.title" class="sm:col-span-2" hint="Déjalo vacío si la imagen ya lleva su propio texto." />
             <x-admin.input label="Subtítulo (opcional)" model="form.subtitle" class="sm:col-span-2" />
             <div class="sm:col-span-2">
                 <x-admin.input label="Imagen (JPG, PNG o WebP, mín. 1200 px de ancho, máx. 4 MB)" model="form.image" type="file" accept="image/jpeg,image/png,image/webp" />
@@ -34,10 +34,10 @@
                     @if ($record->imageUrl())
                         <img src="{{ $record->imageUrl() }}" alt="" class="h-12 w-24 shrink-0 rounded-control object-cover" width="96" height="48" loading="lazy">
                     @else
-                        <div class="flex h-12 w-24 shrink-0 items-center justify-center rounded-control bg-linear-to-br from-earth to-brand-strong text-xs text-white">Sin imagen</div>
+                        <div class="flex h-12 w-24 shrink-0 items-center justify-center rounded-control bg-linear-to-br from-primary to-brand-strong text-xs text-white">Sin imagen</div>
                     @endif
                     <div class="min-w-0">
-                        <p class="font-semibold">{{ $record->title }}</p>
+                        <p class="font-semibold">{{ $record->title ?: 'Sin título (solo imagen)' }}</p>
                         <p class="truncate text-sm text-muted">{{ $record->subtitle ?: 'Sin subtítulo' }}</p>
                     </div>
                 </div>

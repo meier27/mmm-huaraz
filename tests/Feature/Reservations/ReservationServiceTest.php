@@ -8,7 +8,6 @@ use App\Enums\PaymentStatus;
 use App\Enums\ReservationStatus;
 use App\Exceptions\ReservationException;
 use App\Models\AuditLog;
-use App\Models\EventSetting;
 use App\Models\Reservation;
 use App\Models\ReservationPayment;
 use App\Models\User;
@@ -224,7 +223,7 @@ class ReservationServiceTest extends TestCase
 
     public function test_minimum_deposit_percentage_applies_to_the_first_payment_only(): void
     {
-        EventSetting::query()->firstOrCreate([], EventSetting::defaults())->update(['deposit_min_percent' => 50]);
+        $this->foodEvent()->update(['deposit_min_percent' => 50]);
         $reservation = $this->reserve([$this->offering(['price' => '15.00'])->id => 1]); // mínimo 7.50
 
         try {

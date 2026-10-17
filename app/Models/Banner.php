@@ -13,6 +13,9 @@ class Banner extends Model
 
     protected string $imageColumn = 'image_path';
 
+    /** @var array{int, int} Tamaño máximo al optimizar la imagen subida. */
+    protected array $imageBounds = [2400, 1200];
+
     protected $fillable = ['title', 'subtitle', 'image_alt', 'cta_label', 'cta_url', 'is_published', 'sort_order'];
 
     protected function casts(): array

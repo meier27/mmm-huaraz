@@ -6,17 +6,17 @@ use App\Enums\AccommodationType;
 use App\Enums\DonationMethodType;
 use App\Enums\VenueKind;
 use App\Models\Accommodation;
+use App\Models\ChurchEvent;
 use App\Models\DonationMethod;
-use App\Models\EventSetting;
 use App\Models\Faq;
 use App\Models\ProgramDay;
 use App\Models\ProgramItem;
+use App\Models\SiteSetting;
 use App\Models\TouristPlace;
 use App\Models\Venue;
 use Database\Seeders\ConventionSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Carbon;
-use Illuminate\Support\Facades\Cache;
 use PHPUnit\Framework\Attributes\DataProvider;
 use Tests\TestCase;
 
@@ -34,11 +34,17 @@ class PublicPagesTest extends TestCase
     {
         return [
             'inicio' => ['/'],
-            'programa' => ['/programa'],
-            'sede' => ['/sede'],
-            'donaciones' => ['/donaciones'],
-            'hospedaje' => ['/hospedaje'],
-            'turismo' => ['/turismo'],
+            'nosotros' => ['/nosotros'],
+            'ensenanzas' => ['/ensenanzas'],
+            'biblia' => ['/biblia'],
+            'eventos' => ['/eventos'],
+            'bethel' => ['/bethel-tv'],
+            'convencion' => ['/eventos/convencion-nacional-2026'],
+            'programa' => ['/eventos/convencion-nacional-2026/programa'],
+            'sede' => ['/eventos/convencion-nacional-2026/sede'],
+            'donaciones' => ['/eventos/convencion-nacional-2026/donaciones'],
+            'hospedaje' => ['/eventos/convencion-nacional-2026/hospedaje'],
+            'turismo' => ['/eventos/convencion-nacional-2026/turismo'],
             'contacto' => ['/contacto'],
         ];
     }
@@ -51,11 +57,11 @@ class PublicPagesTest extends TestCase
 
     public function test_empty_sections_say_information_is_pending_instead_of_inventing_it(): void
     {
-        $this->get('/programa')->assertSee('en cuanto la organización lo confirme');
-        $this->get('/donaciones')->assertSee('en cuanto la organización los confirme');
-        $this->get('/hospedaje')->assertSee('en cuanto la organización las confirme');
+        $this->get('/eventos/convencion-nacional-2026/programa')->assertSee('en cuanto la organización lo confirme');
+        $this->get('/eventos/convencion-nacional-2026/donaciones')->assertSee('en cuanto la organización los confirme');
+        $this->get('/eventos/convencion-nacional-2026/hospedaje')->assertSee('en cuanto la organización las confirme');
         $this->get('/contacto')->assertSee('Los datos de contacto se publicarán aquí');
-        $this->get('/sede')->assertSee('Dirección exacta por confirmar.');
+        $this->get('/eventos/convencion-nacional-2026/sede')->assertSee('Dirección exacta por confirmar.');
     }
 
     public function test_only_published_program_items_are_shown(): void
@@ -64,7 +70,7 @@ class PublicPagesTest extends TestCase
         ProgramItem::create(['program_day_id' => $day->id, 'starts_at' => '19:00', 'title' => 'Culto de apertura', 'is_published' => true]);
         ProgramItem::create(['program_day_id' => $day->id, 'starts_at' => '21:00', 'title' => 'Actividad en borrador', 'is_published' => false]);
 
-        $this->get('/programa')
+        $this->get('/eventos/convencion-nacional-2026/programa')
             ->assertSee('Culto de apertura')
             ->assertSee('19:00')
             ->assertDontSee('Actividad en borrador');
@@ -74,15 +80,16 @@ class PublicPagesTest extends TestCase
     {
         Faq::create(['question' => 'Pregunta oculta', 'answer' => 'x', 'is_published' => false]);
         DonationMethod::create(['type' => DonationMethodType::Yape, 'label' => 'Cuenta en borrador', 'is_published' => false]);
-        Accommodation::create(['type' => AccommodationType::Hotel, 'name' => 'Hotel en borrador', 'is_published' => false]);
-        TouristPlace::create(['name' => 'Lugar en borrador', 'is_published' => false]);
-        Venue::create(['kind' => VenueKind::HostChurch, 'name' => 'Iglesia en borrador', 'is_published' => false]);
+        $event = ['church_event_id' => ChurchEvent::featured()->id];
+        Accommodation::query()->forceCreate($event + ['type' => AccommodationType::Hotel, 'name' => 'Hotel en borrador', 'is_published' => false]);
+        TouristPlace::query()->forceCreate($event + ['name' => 'Lugar en borrador', 'is_published' => false]);
+        Venue::query()->forceCreate($event + ['kind' => VenueKind::HostChurch, 'name' => 'Iglesia en borrador', 'is_published' => false]);
 
         $this->get('/contacto')->assertDontSee('Pregunta oculta');
-        $this->get('/donaciones')->assertDontSee('Cuenta en borrador');
-        $this->get('/hospedaje')->assertDontSee('Hotel en borrador');
-        $this->get('/turismo')->assertDontSee('Lugar en borrador');
-        $this->get('/sede')->assertDontSee('Iglesia en borrador');
+        $this->get('/eventos/convencion-nacional-2026/donaciones')->assertDontSee('Cuenta en borrador');
+        $this->get('/eventos/convencion-nacional-2026/hospedaje')->assertDontSee('Hotel en borrador');
+        $this->get('/eventos/convencion-nacional-2026/turismo')->assertDontSee('Lugar en borrador');
+        $this->get('/eventos/convencion-nacional-2026/sede')->assertDontSee('Iglesia en borrador');
     }
 
     public function test_published_donation_method_is_listed(): void
@@ -92,26 +99,69 @@ class PublicPagesTest extends TestCase
             'holder_name' => 'Titular de prueba', 'account_number' => '000-0000', 'is_published' => true,
         ]);
 
-        $this->get('/donaciones')->assertSee('Banco de prueba')->assertSee('000-0000')->assertSee('Copiar');
+        $this->get('/eventos/convencion-nacional-2026/donaciones')->assertSee('Banco de prueba')->assertSee('000-0000')->assertSee('Copiar');
     }
 
     public function test_venue_with_coordinates_offers_map_and_google_maps_link(): void
     {
         Venue::first()->update(['latitude' => -9.1234567, 'longitude' => -77.1234567, 'address' => 'Dirección de prueba']);
 
-        $this->get('/sede')
+        $this->get('/eventos/convencion-nacional-2026/sede')
             ->assertSee('Dirección de prueba')
-            ->assertSee('Mostrar mapa')
-            ->assertSee('https://www.google.com/maps/search/?api=1&amp;query=-9.1234567,-77.1234567', false);
+            // Mapa incrustado con el punto exacto y enlace para abrir Google Maps.
+            ->assertSee('https://maps.google.com/maps?q=-9.1234567%2C-77.1234567&amp;z=16&amp;output=embed', false)
+            ->assertSee('https://www.google.com/maps/search/?api=1&amp;query=-9.1234567%2C-77.1234567', false);
+    }
+
+    public function test_venue_without_coordinates_maps_its_address(): void
+    {
+        Venue::first()->update(['latitude' => null, 'longitude' => null, 'address' => 'Av. Luzuriaga 234, Huaraz', 'maps_url' => null]);
+
+        $this->get('/eventos/convencion-nacional-2026/sede')
+            ->assertSee('https://maps.google.com/maps?q=Av.%20Luzuriaga%20234%2C%20Huaraz', false);
+    }
+
+    public function test_church_address_with_map_appears_on_home_contact_and_footer(): void
+    {
+        $this->get('/')->assertDontSee('Dónde estamos');
+
+        $site = \App\Models\SiteSetting::current();
+        $site->address = 'Av. Luzuriaga 234, Huaraz';
+        $site->save();
+
+        foreach (['/', '/contacto'] as $page) {
+            $this->get($page)
+                ->assertSee('Dónde estamos')
+                ->assertSee('Av. Luzuriaga 234, Huaraz')
+                ->assertSee('https://maps.google.com/maps?q=Av.%20Luzuriaga%20234%2C%20Huaraz', false);
+        }
+
+        // En el pie de cualquier página, con enlace a Google Maps.
+        $this->get('/nosotros')->assertSee('Av. Luzuriaga 234, Huaraz')->assertSee('(Google Maps, pestaña nueva)');
     }
 
     public function test_contact_data_and_whatsapp_link_are_rendered(): void
     {
-        EventSetting::first()->update(['contact_whatsapp' => '+51 900 000 000', 'contact_email' => 'contacto@example.test']);
+        SiteSetting::first()->update(['contact_whatsapp' => '+51 900 000 000', 'contact_email' => 'contacto@example.test']);
 
         $this->get('/contacto')
             ->assertSee('https://wa.me/51900000000', false)
             ->assertSee('contacto@example.test');
+    }
+
+    public function test_old_convention_urls_redirect_permanently(): void
+    {
+        foreach (['programa', 'sede', 'reservas', 'donaciones', 'hospedaje', 'turismo'] as $old) {
+            // Al evento destacado (la convención sembrada).
+            $this->get("/$old")->assertStatus(301)->assertRedirect("/eventos/convencion-nacional-2026/$old");
+            $this->get("/eventos/convencion/$old")->assertStatus(301)->assertRedirect("/eventos/convencion-nacional-2026/$old");
+        }
+    }
+
+    public function test_convention_pages_show_their_submenu_and_site_pages_do_not(): void
+    {
+        $this->get('/eventos/convencion-nacional-2026/programa')->assertSee('aria-label="Secciones del evento"', false);
+        $this->get('/nosotros')->assertDontSee('aria-label="Secciones del evento"', false);
     }
 
     public function test_content_is_escaped(): void
@@ -123,30 +173,27 @@ class PublicPagesTest extends TestCase
 
     public function test_countdown_label_reflects_current_date(): void
     {
-        $settings = EventSetting::current();
+        $event = ChurchEvent::featured();
 
-        $this->assertSame('Faltan 7 días', $settings->countdownLabel(Carbon::parse('2026-10-15')));
-        $this->assertSame('Falta 1 día', $settings->countdownLabel(Carbon::parse('2026-10-21')));
-        $this->assertSame('La convención está en curso', $settings->countdownLabel(Carbon::parse('2026-10-23')));
-        $this->assertSame('La convención ha finalizado', $settings->countdownLabel(Carbon::parse('2026-10-26')));
+        $this->assertSame('Faltan 7 días', $event->countdownLabel(Carbon::parse('2026-10-15')));
+        $this->assertSame('Falta 1 día', $event->countdownLabel(Carbon::parse('2026-10-21')));
+        $this->assertSame('En curso', $event->countdownLabel(Carbon::parse('2026-10-23')));
+        $this->assertSame('Finalizado', $event->countdownLabel(Carbon::parse('2026-10-26')));
     }
 
-    public function test_settings_cached_before_a_migration_do_not_break_the_site(): void
+    public function test_home_features_the_highlighted_event(): void
     {
-        // Caché con el formato anterior (sin columnas nuevas), como tras un despliegue.
-        Cache::forever('event_settings', ['id' => 1, 'theme' => 'Antiguo']);
-
-        $this->get('/')->assertOk()->assertSee('Familia hay esperanza');
+        $this->get('/')->assertOk()->assertSee('Familia hay esperanza')->assertSee(route('events.show', ChurchEvent::featured()), false);
     }
 
     public function test_seeder_is_idempotent_and_does_not_overwrite_admin_changes(): void
     {
-        EventSetting::first()->update(['theme' => 'Tema editado']);
+        ChurchEvent::featured()->update(['theme' => 'Tema editado']);
 
         $this->seed(ConventionSeeder::class);
 
-        $this->assertSame(1, EventSetting::count());
-        $this->assertSame('Tema editado', EventSetting::first()->theme);
+        $this->assertSame(1, ChurchEvent::count());
+        $this->assertSame('Tema editado', ChurchEvent::first()->theme);
         $this->assertSame(4, ProgramDay::count());
         $this->assertSame(1, Venue::count());
     }

@@ -30,7 +30,7 @@
 
                 <dl class="mt-4 space-y-1 border-t border-line pt-3 text-sm">
                     <div class="flex justify-between"><dt class="text-muted">Ya pagado</dt><dd class="font-semibold tabular-nums">S/ {{ number_format((float) $reservation->amount_paid, 2) }}</dd></div>
-                    <div class="flex items-baseline justify-between"><dt class="text-muted">Nuevo total</dt><dd class="font-display text-2xl font-extrabold text-earth tabular-nums" aria-live="polite">S/ <span x-text="total.toFixed(2)">0.00</span></dd></div>
+                    <div class="flex items-baseline justify-between"><dt class="text-muted">Nuevo total</dt><dd class="font-display text-2xl font-extrabold text-primary tabular-nums" aria-live="polite">S/ <span x-text="total.toFixed(2)">0.00</span></dd></div>
                 </dl>
                 @if ($reservation->hasPayments())
                     <p class="mt-1 text-xs text-muted">El nuevo pedido debe costar al menos lo que ya pagaste; la diferencia se paga al recoger.</p>

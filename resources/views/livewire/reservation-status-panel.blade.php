@@ -40,6 +40,11 @@
         <p class="mt-3 text-sm text-muted">Motivo: {{ $reservation->cancellation_reason }}</p>
     @elseif ($reservation->isDonated())
         <p class="mt-3 text-sm text-muted">El pedido no se recogió a tiempo y se destinó a donación.</p>
+    @elseif ($reservation->awaitsDepositReview())
+        <p class="mt-3 flex gap-2 rounded-control bg-amber-50 p-3 text-sm text-ink">
+            <x-ui.icon name="clock" class="mt-0.5 size-4 shrink-0 text-warning" />
+            Recibimos la captura de tu adelanto. El equipo la verificará y tu reserva quedará confirmada.
+        </p>
     @elseif (! $reservation->hasPayments() && $reservation->expires_at)
         <p class="mt-3 text-sm text-muted">
             Paga tu adelanto antes del {{ $reservation->expires_at->translatedFormat('j \d\e F, H:i') }}; si no, la reserva se liberará automáticamente.
@@ -50,7 +55,8 @@
         @if (auth()->user()->can('view', $reservation))
             @php
                 $user = auth()->user();
-                $canPay = $user->can('registerPayment', $reservation) && ! $reservation->isClosed() && (float) $reservation->balance() > 0;
+                $canReview = $user->can('registerPayment', $reservation) && $reservation->awaitsDepositReview();
+                $canPay = $user->can('registerPayment', $reservation) && ! $reservation->isClosed() && (float) $reservation->balance() > 0 && ! $canReview;
                 $canDeliver = $user->can('deliver', $reservation) && ! $reservation->isClosed();
                 $canDonate = $user->can('markDonated', $reservation) && ! $reservation->isClosed() && $reservation->hasPayments() && ! $reservation->customerCanChange();
                 $canCancel = $user->can('cancel', $reservation) && ! $reservation->isClosed();
@@ -84,6 +90,42 @@
                         <div><dt class="inline text-muted">Cancelado por</dt> <dd class="inline">{{ $reservation->canceller->name }}</dd></div>
                     @endif
                 </dl>
+
+                @if ($canReview)
+                    @php
+                        $expected = $reservation->event->minimumDeposit((string) $reservation->total);
+                    @endphp
+                    <div class="space-y-3 rounded-control border-2 border-amber-300 bg-amber-50 p-3">
+                        <p class="text-sm font-bold">Adelanto por verificar · S/ {{ number_format((float) $expected, 2) }}</p>
+                        <a href="{{ route('admin.reservations.proof', $reservation) }}" target="_blank" rel="noopener" class="block">
+                            <img src="{{ route('admin.reservations.proof', $reservation) }}" alt="Captura del adelanto de la reserva {{ $reservation->code }}"
+                                 class="max-h-80 w-full rounded-control bg-white object-contain ring-1 ring-line">
+                            <span class="mt-1 inline-block text-xs font-semibold text-brand-strong">Abrir en tamaño completo (pestaña nueva)</span>
+                        </a>
+                        <form wire:submit="approveDeposit" class="flex flex-wrap items-end gap-2">
+                            <div class="min-w-32 flex-1">
+                                <label for="depositMethod" class="block text-sm font-medium">Llegó por</label>
+                                <select id="depositMethod" wire:model="depositMethod" class="mt-1 block min-h-11 w-full rounded-control border border-stone-300 bg-white px-3">
+                                    @foreach ($methods as $method)
+                                        <option value="{{ $method->value }}">{{ $method->label() }}</option>
+                                    @endforeach
+                                </select>
+                            </div>
+                            <x-ui.button type="submit" wire:loading.attr="disabled" wire:confirm="¿Confirmas que el adelanto llegó a la cuenta?">
+                                <x-ui.icon name="check" class="size-5" /> Aceptar
+                            </x-ui.button>
+                        </form>
+                        <details>
+                            <summary class="cursor-pointer text-sm font-semibold text-danger">Rechazar captura</summary>
+                            <form wire:submit="rejectDeposit" class="mt-2 space-y-2">
+                                <label for="rejectReason" class="block text-sm font-medium">Motivo (lo verá el cliente)</label>
+                                <input id="rejectReason" type="text" wire:model="rejectReason" placeholder="Ej.: el pago no llegó a la cuenta" class="block min-h-11 w-full rounded-control border border-stone-300 bg-white px-3">
+                                @error('rejectReason')<p class="text-sm text-danger">{{ $message }}</p>@enderror
+                                <x-ui.button type="submit" variant="secondary" class="text-danger!" wire:confirm="¿Rechazar la captura y cancelar la reserva?">Rechazar y cancelar</x-ui.button>
+                            </form>
+                        </details>
+                    </div>
+                @endif
 
                 @if ($canPay)
                     <form wire:submit="registerPayment" class="grid gap-3 rounded-control bg-stone-50 p-3 sm:grid-cols-3">
@@ -127,7 +169,7 @@
                     </x-ui.button>
                 @endif
 
-                @if ($canCancel)
+                @if ($canCancel && ! $canReview)
                     <details class="rounded-control border border-line p-3">
                         <summary class="cursor-pointer text-sm font-semibold text-danger">Cancelar reserva</summary>
                         <form wire:submit="cancel" class="mt-3 space-y-2">
@@ -139,7 +181,7 @@
                     </details>
                 @endif
 
-                @if (! $canPay && ! $canDeliver && ! $canDonate && ! $canCancel)
+                @if (! $canReview && ! $canPay && ! $canDeliver && ! $canDonate && ! $canCancel)
                     <p class="text-sm text-muted">No hay acciones disponibles para tu rol en el estado actual.</p>
                 @endif
             </div>

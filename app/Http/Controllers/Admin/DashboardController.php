@@ -97,7 +97,7 @@ class DashboardController extends Controller
         $pending = (clone $active)->selectRaw('COALESCE(SUM(total - amount_paid), 0) as due')->value('due');
 
         return [
-            ['label' => 'Reservas activas', 'value' => number_format((clone $active)->count()), 'icon' => 'qr', 'route' => 'admin.reservations'],
+            ['label' => 'Reservas activas', 'value' => number_format((clone $active)->count()), 'icon' => 'utensils', 'route' => 'admin.reservations'],
             ['label' => 'Porciones del evento destacado', 'value' => number_format($eventPortions ?? 0), 'icon' => 'utensils', 'route' => 'admin.reservations'],
             ['label' => 'Cobrado en reservas', 'value' => 'S/ '.number_format((float) $collected, 2), 'icon' => 'coins', 'route' => 'admin.reservations', 'accent' => true],
             ['label' => 'Saldo por cobrar', 'value' => 'S/ '.number_format((float) $pending, 2), 'icon' => 'clock', 'route' => 'admin.reservations'],

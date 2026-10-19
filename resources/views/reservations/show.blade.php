@@ -2,19 +2,18 @@
     <div class="bg-cream">
         <div class="container-content py-10">
             <div class="mx-auto grid max-w-4xl gap-6 md:grid-cols-[18rem_1fr]">
-                <section class="rounded-card bg-white p-5 text-center shadow-card" aria-labelledby="qr-titulo">
-                    <h1 id="qr-titulo" class="text-lg font-bold">Tu código de reserva</h1>
-                    <p class="mt-1 font-mono text-3xl font-extrabold tracking-widest text-brand-strong">{{ $reservation->code }}</p>
-
-                    <div class="mx-auto mt-4 w-56 max-w-full [&>svg]:h-auto [&>svg]:w-full" role="img" aria-label="Código QR de la reserva {{ $reservation->code }}">
-                        {!! $qrSvg !!}
+                <section class="self-start overflow-hidden rounded-card bg-white text-center shadow-card" aria-labelledby="codigo-titulo" x-data="{ copied: false }">
+                    <div class="bg-primary-deep px-5 py-6 text-white">
+                        <h1 id="codigo-titulo" class="text-sm font-semibold tracking-[0.14em] text-cream/80 uppercase">Tu código de reserva</h1>
+                        <p class="mt-2 font-mono text-4xl font-extrabold tracking-[0.2em] text-accent-light">{{ $reservation->code }}</p>
                     </div>
-
-                    <p class="mt-3 text-sm text-muted">Muestra este código al recoger tu pedido. Guarda esta página o descarga el QR.</p>
-
-                    <x-ui.button href="{{ route('reservations.qr', $token) }}" variant="secondary" class="mt-4 w-full">
-                        <x-ui.icon name="download" class="size-5" /> Descargar QR
-                    </x-ui.button>
+                    <div class="p-5">
+                        <p class="text-sm text-muted">Muéstralo al recoger tu pedido. Anótalo o guarda esta página.</p>
+                        <x-ui.button variant="secondary" class="mt-4 w-full"
+                                     x-on:click="navigator.clipboard?.writeText(@js($reservation->code)).then(() => { copied = true; setTimeout(() => copied = false, 2000) })">
+                            <span x-show="!copied">Copiar código</span><span x-show="copied" x-cloak role="status">Copiado</span>
+                        </x-ui.button>
+                    </div>
                 </section>
 
                 <div class="space-y-6">
@@ -53,8 +52,8 @@
                     </section>
 
                     @unless ($reservation->isClosed())
-                        <section class="rounded-card border border-brand/40 bg-white p-5" aria-labelledby="como-pagar">
-                            <h2 id="como-pagar" class="text-lg font-bold">Cómo funciona</h2>
+                        <section class="rounded-card border border-brand/40 bg-white p-5" aria-labelledby="como-funciona">
+                            <h2 id="como-funciona" class="text-lg font-bold">Cómo funciona</h2>
                             <div class="mt-3">@include('reservations.partials.rules')</div>
                             @if ($event->reservation_instructions && ! $reservation->isFullyPaid())
                                 <p class="mt-4 rounded-control bg-cream p-3 text-sm whitespace-pre-line">{{ $event->reservation_instructions }}</p>

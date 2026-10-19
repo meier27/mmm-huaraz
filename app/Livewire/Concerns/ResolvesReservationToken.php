@@ -5,7 +5,7 @@ namespace App\Livewire\Concerns;
 use App\Models\Reservation;
 
 /**
- * Acciones del cliente autorizadas por la posesión del token (enlace o QR).
+ * Acciones del cliente autorizadas por la posesión del token (enlace privado).
  * El token se vuelve a resolver en el servidor en cada petición.
  */
 trait ResolvesReservationToken

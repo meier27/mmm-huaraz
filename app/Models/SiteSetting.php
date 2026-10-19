@@ -20,6 +20,7 @@ class SiteSetting extends Model
         'contact_phone', 'contact_whatsapp', 'contact_email',
         'facebook_url', 'instagram_url', 'youtube_url', 'tiktok_url',
         'bible_version', 'bethel_channel_id',
+        'color_primary', 'color_accent', 'color_button', 'color_background', 'color_gradient_end', 'font_body', 'font_heading',
     ];
 
     public static function defaults(): array

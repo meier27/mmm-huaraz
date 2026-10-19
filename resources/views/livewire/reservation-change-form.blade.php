@@ -1,12 +1,12 @@
 <div>
     <x-ui.page-intro title="Cambiar mi pedido" :eyebrow="'Reserva '.$reservation->code">
-        Elige la nueva comida (por ejemplo, para la noche o el día siguiente). Tu código y tu QR no cambian.
+        Elige la nueva comida (por ejemplo, para la noche o el día siguiente). Tu código de reserva no cambia.
     </x-ui.page-intro>
 
     <div class="container-content py-10">
         <form wire:submit="save" novalidate
               x-data="{ prices: @js($prices), get total() { return Object.entries($wire.quantities).reduce((sum, [id, qty]) => sum + (this.prices[id] ?? 0) * (parseInt(qty) || 0), 0) } }"
-              class="grid gap-8 lg:grid-cols-[1fr_22rem] lg:items-start">
+              class="grid grid-cols-1 gap-8 lg:grid-cols-[1fr_22rem] lg:items-start">
 
             <div class="space-y-10">
                 @error('quantities')

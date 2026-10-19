@@ -54,7 +54,7 @@ class ReservationChangeForm extends Component
             throw ValidationException::withMessages(['quantities' => $e->getMessage()]);
         }
 
-        session()->flash('reservation-notice', 'Tu pedido se actualizó. Tu código y QR siguen siendo los mismos.');
+        session()->flash('reservation-notice', 'Tu pedido se actualizó. Tu código de reserva sigue siendo el mismo.');
         $this->redirect(route('reservations.show', $this->token));
     }
 

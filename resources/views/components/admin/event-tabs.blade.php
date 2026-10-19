@@ -10,7 +10,7 @@
         ['label' => 'Sedes', 'icon' => 'map-pin', 'url' => route('admin.events.venues', $event), 'active' => 'admin.events.venues', 'module' => 'venues'],
         ['label' => 'Platos', 'icon' => 'utensils', 'url' => route('admin.events.dishes', $event), 'active' => 'admin.events.dishes', 'module' => 'food'],
         ['label' => 'Ofertas', 'icon' => 'clock', 'url' => route('admin.events.offerings', $event), 'active' => 'admin.events.offerings', 'module' => 'food'],
-        ['label' => 'Reservas', 'icon' => 'qr', 'url' => route('admin.reservations', ['evento' => $event->id]), 'active' => null, 'module' => 'food', 'can' => 'manage-reservations'],
+        ['label' => 'Reservas', 'icon' => 'utensils', 'url' => route('admin.reservations', ['evento' => $event->id]), 'active' => null, 'module' => 'food', 'can' => 'manage-reservations'],
         ['label' => 'Aportes', 'icon' => 'coins', 'url' => route('admin.donations', ['evento' => $event->id, 'status' => 'all']), 'active' => null, 'module' => 'donations', 'can' => 'manage-donations'],
         ['label' => 'Hospedaje', 'icon' => 'bed', 'url' => route('admin.events.accommodations', $event), 'active' => 'admin.events.accommodations', 'module' => 'accommodations'],
         ['label' => 'Turismo', 'icon' => 'mountain', 'url' => route('admin.events.tourism', $event), 'active' => 'admin.events.tourism', 'module' => 'tourism'],
@@ -38,7 +38,7 @@
     </div>
 
     {{-- En móvil se desplaza en horizontal; en pantallas grandes pasa a otra línea. --}}
-    <nav aria-label="Secciones del evento" class="mt-4 -mx-1 overflow-x-auto lg:overflow-visible">
+    <nav aria-label="Secciones del evento" class="mt-4 -mx-1 overflow-x-auto lg:overflow-visible" x-init="$nextTick(() => { const a = $el.querySelector('[aria-current]'); if (a) $el.scrollLeft = a.offsetLeft - ($el.clientWidth - a.offsetWidth) / 2 })">
         <ul class="flex gap-1 border-b border-line px-1 lg:flex-wrap">
             @foreach ($tabs as $tab)
                 @php

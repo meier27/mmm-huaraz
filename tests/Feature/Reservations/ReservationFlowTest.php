@@ -12,7 +12,9 @@ use App\Models\Reservation;
 use App\Models\User;
 use App\Services\ReservationService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\RateLimiter;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Livewire\Features\SupportLockedProperties\CannotUpdateLockedPropertyException;
 use Livewire\Livewire;
@@ -49,8 +51,14 @@ class ReservationFlowTest extends TestCase
         $this->assertSame(0, Reservation::count());
     }
 
-    public function test_visitor_reserves_and_is_redirected_to_the_qr_page(): void
+    private function proof(): UploadedFile
     {
+        return UploadedFile::fake()->image('adelanto.jpg', 600, 900);
+    }
+
+    public function test_visitor_reserves_with_deposit_proof_and_gets_a_code(): void
+    {
+        Storage::fake('local');
         $this->openReservations();
         $offering = $this->offering(['price' => '15.00']);
 
@@ -60,12 +68,15 @@ class ReservationFlowTest extends TestCase
             ->set("quantities.{$offering->id}", 2)
             ->set('customer_name', 'Ana Prueba')
             ->set('customer_phone', '+51 900 000 123')
+            ->set('deposit_proof', $this->proof())
             ->call('submit')
             ->assertHasNoErrors()
             ->assertRedirect(Reservation::sole()->publicUrl());
 
         $reservation = Reservation::sole();
         $this->assertSame('30.00', $reservation->total);
+        Storage::disk('local')->assertExists($reservation->deposit_proof_path);
+        $this->assertNull($reservation->expires_at); // con captura no vence sola: espera la revisión
 
         $response = $this->get($reservation->publicUrl());
         $this->assertStringContainsString('no-store', $response->headers->get('Cache-Control'));
@@ -75,8 +86,10 @@ class ReservationFlowTest extends TestCase
             ->assertOk()
             ->assertHeader('X-Robots-Tag', 'noindex, nofollow')
             ->assertSee($reservation->code)
-            ->assertSee('<svg', false)
-            ->assertSee('Pendiente de adelanto')
+            ->assertSee('Tu código de reserva')
+            ->assertDontSee('Descargar QR')
+            ->assertSee('Por verificar')
+            ->assertSee('Recibimos la captura de tu adelanto')
             ->assertSee('•••••••123') // celular enmascarado
             ->assertDontSee('900 000 123');
     }
@@ -101,18 +114,23 @@ class ReservationFlowTest extends TestCase
         RateLimiter::clear('reservation-create:127.0.0.1');
         $offering = $this->offering(['stock' => 100]);
 
-        $component = Livewire::test(ReservationForm::class, ['event' => $this->foodEvent()])
-            ->set("quantities.{$offering->id}", 1)
-            ->set('customer_name', 'Ana Prueba')
-            ->set('customer_phone', '900000123');
+        Storage::fake('local');
 
-        $component->call('submit');
-        Livewire::test(ReservationForm::class, ['event' => $this->foodEvent()])->set("quantities.{$offering->id}", 1)->set('customer_name', 'Ana Prueba')->set('customer_phone', '900000123')->call('submit');
+        foreach ([1, 2] as $attempt) {
+            Livewire::test(ReservationForm::class, ['event' => $this->foodEvent()])
+                ->set("quantities.{$offering->id}", 1)
+                ->set('customer_name', 'Ana Prueba')
+                ->set('customer_phone', '900000123')
+                ->set('deposit_proof', $this->proof())
+                ->call('submit')
+                ->assertHasNoErrors();
+        }
 
         Livewire::test(ReservationForm::class, ['event' => $this->foodEvent()])
             ->set("quantities.{$offering->id}", 1)
             ->set('customer_name', 'Ana Prueba')
             ->set('customer_phone', '900000123')
+            ->set('deposit_proof', $this->proof())
             ->call('submit')
             ->assertHasErrors('quantities');
 
@@ -126,16 +144,6 @@ class ReservationFlowTest extends TestCase
         $this->get('/reserva/'.str_repeat('a', 48).'/qr.svg')->assertNotFound();
     }
 
-    public function test_qr_can_be_downloaded_as_svg(): void
-    {
-        $reservation = $this->reservation();
-
-        $this->get(route('reservations.qr', $reservation->token_encrypted))
-            ->assertOk()
-            ->assertHeader('Content-Type', 'image/svg+xml')
-            ->assertHeader('Content-Disposition', 'attachment; filename="reserva-'.$reservation->code.'.svg"');
-    }
-
     public function test_guest_sees_status_but_no_staff_actions(): void
     {
         $reservation = $this->reservation();
@@ -147,7 +155,7 @@ class ReservationFlowTest extends TestCase
             ->assertForbidden();
     }
 
-    public function test_cashier_scanning_the_qr_registers_advance_then_balance(): void
+    public function test_cashier_registers_advance_then_balance_by_hand(): void
     {
         $reservation = $this->reservation(2); // 2 × 12.50 = 25.00
         $cashier = User::factory()->role(Role::Cashier)->create();

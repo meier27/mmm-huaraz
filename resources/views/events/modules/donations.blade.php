@@ -9,7 +9,7 @@
         @else
             <div class="grid gap-10 lg:grid-cols-[minmax(0,5fr)_minmax(0,7fr)] lg:items-start">
                 {{-- Invitación y pasos --}}
-                <div class="relative isolate overflow-hidden rounded-card bg-linear-to-br from-primary-deep via-primary to-[#5b3b26] p-7 text-white shadow-[0_30px_60px_-30px_rgb(57_49_45/0.7)] sm:p-9 order-2 lg:order-none lg:sticky lg:top-28">
+                <div class="relative isolate overflow-hidden rounded-card bg-linear-to-br from-primary-deep via-primary to-gradient-end p-7 text-white shadow-[0_30px_60px_-30px_rgb(57_49_45/0.7)] sm:p-9 order-2 lg:order-none lg:sticky lg:top-28">
                     <div class="absolute -top-20 -right-20 -z-10 size-72 rounded-full bg-brand/25 blur-3xl" aria-hidden="true"></div>
                     <span class="inline-flex size-14 items-center justify-center rounded-full bg-white/10 text-accent-light ring-1 ring-white/15">
                         <x-ui.icon name="heart" class="size-7" />

@@ -15,9 +15,11 @@ use App\Models\ReservationItem;
 use App\Models\ReservationPayment;
 use App\Models\User;
 use Illuminate\Database\UniqueConstraintViolationException;
+use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\ValidationException;
 
 /**
@@ -41,12 +43,12 @@ class ReservationService
 
     /**
      * @param  array<int|string, int|string>  $quantities  id de oferta => porciones
-     */
-    /**
      * @param  ChurchEvent|null  $event  Evento de la página desde la que se reserva: si se indica,
      *                                   solo se aceptan platos de ese evento.
+     * @param  UploadedFile|null  $depositProof  Captura del adelanto: con ella la reserva no
+     *                                           vence sola; espera la revisión del personal.
      */
-    public function create(array $quantities, string $name, string $phone, ?string $notes, string $idempotencyKey, ?ChurchEvent $event = null): Reservation
+    public function create(array $quantities, string $name, string $phone, ?string $notes, string $idempotencyKey, ?ChurchEvent $event = null, ?UploadedFile $depositProof = null): Reservation
     {
         $quantities = $this->cleanQuantities($quantities);
 
@@ -54,8 +56,10 @@ class ReservationService
             return $existing;
         }
 
+        $proofPath = $depositProof?->store('reservation-proofs', Reservation::PROOF_DISK);
+
         try {
-            return DB::transaction(function () use ($quantities, $name, $phone, $notes, $idempotencyKey, $event) {
+            return DB::transaction(function () use ($quantities, $name, $phone, $notes, $idempotencyKey, $event, $proofPath) {
                 $lines = $this->reserveStock($quantities, $event?->id);
                 $token = bin2hex(random_bytes(24));
 
@@ -69,22 +73,58 @@ class ReservationService
                     'customer_name' => $name,
                     'customer_phone' => $phone,
                     'notes' => $notes ?: null,
+                    'deposit_proof_path' => $proofPath,
                     'total' => $this->sum($lines),
                     'amount_paid' => '0.00',
                     'status' => ReservationStatus::Pending,
                     'payment_status' => PaymentStatus::Pending,
                     'delivery_status' => DeliveryStatus::Pending,
-                    'expires_at' => $this->holdUntil($lines),
+                    'expires_at' => $proofPath ? null : $this->holdUntil($lines),
                 ])->save();
 
                 $this->storeItems($reservation, $lines);
 
                 return $reservation;
             });
-        } catch (UniqueConstraintViolationException $e) {
+        } catch (\Throwable $e) {
+            if ($proofPath) {
+                Storage::disk(Reservation::PROOF_DISK)->delete($proofPath);
+            }
+
             // Solicitud duplicada simultánea: devolver la que ganó.
-            return Reservation::where('idempotency_key', $idempotencyKey)->first() ?? throw $e;
+            if ($e instanceof UniqueConstraintViolationException) {
+                return Reservation::where('idempotency_key', $idempotencyKey)->first() ?? throw $e;
+            }
+
+            throw $e;
         }
+    }
+
+    /**
+     * Acepta la captura del adelanto: registra como pago el adelanto exigido
+     * por el evento y confirma la reserva.
+     */
+    public function approveDeposit(Reservation $reservation, User $by, PaymentMethod $method): Reservation
+    {
+        return DB::transaction(function () use ($reservation, $by, $method) {
+            $reservation = $this->lock($reservation);
+
+            if ($reservation->deposit_proof_path === null) {
+                throw new ReservationException('Esta reserva no tiene captura del adelanto.');
+            }
+
+            if ($reservation->hasPayments()) {
+                throw new ReservationException('El adelanto de esta reserva ya fue aceptado.');
+            }
+
+            $amount = $reservation->event->minimumDeposit((string) $reservation->total);
+
+            if (bccomp($amount, '0', 2) <= 0) {
+                throw new ReservationException('El evento no tiene un adelanto configurado: indícalo en la ficha del evento o registra el pago a mano.');
+            }
+
+            return $this->registerPayment($reservation, $by, $amount, $method, 'Captura del adelanto');
+        });
     }
 
     /**
@@ -208,7 +248,7 @@ class ReservationService
     }
 
     /**
-     * Cambia el pedido por otras ofertas conservando el código, el QR y lo pagado.
+     * Cambia el pedido por otras ofertas conservando el código, el enlace y lo pagado.
      *
      * @param  array<int|string, int|string>  $quantities
      */

@@ -3,6 +3,7 @@
 use App\Http\Controllers\Admin\DashboardController;
 use App\Http\Controllers\Admin\DonationReceiptController;
 use App\Http\Controllers\Admin\ReservationController as AdminReservationController;
+use App\Http\Controllers\Admin\ReservationProofController;
 use App\Http\Controllers\Auth\LoginController;
 use App\Http\Controllers\BibleController;
 use App\Http\Controllers\EventController;
@@ -65,13 +66,12 @@ Route::prefix('eventos/{event:slug}')->name('events.')->group(function () {
 
 /*
 |--------------------------------------------------------------------------
-| Reservas (enlaces y QR: no cambiar)
+| Reservas (enlaces de los clientes: no cambiar)
 |--------------------------------------------------------------------------
 */
 
 Route::middleware('throttle:reservation-lookup')->group(function () {
     Route::get('reserva/{token}', [ReservationController::class, 'show'])->name('reservations.show');
-    Route::get('reserva/{token}/qr.svg', [ReservationController::class, 'qr'])->name('reservations.qr');
     Route::get('reserva/{token}/cambiar', ReservationChangeForm::class)->name('reservations.change');
 });
 
@@ -93,6 +93,7 @@ Route::middleware(['auth', 'can:access-admin'])->prefix('admin')->name('admin.')
     Route::middleware('can:manage-content')->group(function () {
         // Sitio del movimiento
         Route::get('sitio', Admin\SiteSettingsEditor::class)->name('site');
+        Route::get('apariencia', Admin\AppearanceEditor::class)->name('appearance');
         Route::get('redes-sociales', Admin\SocialLinksEditor::class)->name('social');
         Route::get('banners', Admin\BannerManager::class)->name('banners');
         Route::get('fotos', Admin\GalleryPhotoManager::class)->name('gallery');
@@ -121,6 +122,11 @@ Route::middleware(['auth', 'can:access-admin'])->prefix('admin')->name('admin.')
 
     Route::middleware('can:manage-reservations')->group(function () {
         Route::get('reservas', Admin\ReservationIndex::class)->name('reservations');
+        // Antes de reservas/{reservation}: "verificar" no es un id.
+        Route::get('reservas/verificar', Admin\ReservationVerifier::class)->name('reservations.verify');
+        Route::get('reservas/{reservation}/captura', ReservationProofController::class)
+            ->middleware('can:registerPayment,reservation')
+            ->name('reservations.proof');
         Route::get('reservas/{reservation}', [AdminReservationController::class, 'show'])
             ->middleware('can:view,reservation')
             ->name('reservations.show');

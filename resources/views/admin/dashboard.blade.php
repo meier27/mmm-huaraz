@@ -11,7 +11,7 @@
         <div class="flex flex-wrap gap-2">
             @can('manage-reservations')
                 <a href="{{ route('admin.reservations') }}" wire:navigate class="inline-flex min-h-10 items-center gap-2 rounded-full bg-white px-4 text-sm font-semibold text-primary shadow-sm ring-1 ring-line hover:bg-cream">
-                    <x-ui.icon name="qr" class="size-4" /> Reservas
+                    <x-ui.icon name="utensils" class="size-4" /> Reservas
                 </a>
             @endcan
             @can('manage-donations')
@@ -103,7 +103,7 @@
                             <thead>
                                 <tr class="bg-stone-50 text-left text-xs font-semibold tracking-wide text-muted uppercase">
                                     <th scope="col" class="rounded-l-control px-3 py-2">Plato y horario</th>
-                                    <th scope="col" class="px-3 py-2">Ocupación</th>
+                                    <th scope="col" class="hidden px-3 py-2 sm:table-cell">Ocupación</th>
                                     <th scope="col" class="rounded-r-control px-3 py-2 text-right">Reservado</th>
                                 </tr>
                             </thead>
@@ -116,8 +116,12 @@
                                         <td class="max-w-0 px-3 py-2.5">
                                             <span class="block truncate font-semibold">{{ $offering->dish->name }}</span>
                                             <span class="block text-xs whitespace-nowrap text-muted">{{ $offering->serve_date->translatedFormat('D j') }} · {{ $offering->slotLabel() }}</span>
+                                            {{-- En móvil la ocupación va bajo el nombre (sin columna aparte). --}}
+                                            <span class="mt-1.5 block h-1.5 overflow-hidden rounded-full bg-stone-100 sm:hidden" aria-hidden="true">
+                                                <span class="block h-full rounded-full bg-brand-strong" style="width: {{ $percent }}%"></span>
+                                            </span>
                                         </td>
-                                        <td class="w-36 px-3 py-2.5">
+                                        <td class="hidden w-36 px-3 py-2.5 sm:table-cell">
                                             <div class="flex items-center gap-2">
                                                 <div class="h-2 w-20 overflow-hidden rounded-full bg-stone-100">
                                                     <div class="h-full rounded-full bg-brand-strong" style="width: {{ $percent }}%"></div>

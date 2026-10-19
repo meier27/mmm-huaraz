@@ -80,11 +80,13 @@
                     </div>
                     <x-admin.input label="Nombre público de la actividad" model="form.reservations_title" class="sm:col-span-2"
                                    hint="Vacío = «Actividad solidaria de los hermanos de (ciudad)»." />
+                    <x-admin.input label="Adelanto fijo por reserva (S/)" model="form.deposit_amount" type="number" step="0.01" min="0.10" inputmode="decimal"
+                                   hint="El cliente lo paga y adjunta la captura al reservar. Si se indica, reemplaza al porcentaje." />
                     <x-admin.input label="Adelanto mínimo (%)" model="form.deposit_min_percent" type="number" min="1" max="100" inputmode="numeric"
-                                   hint="Vacío = se acepta cualquier adelanto mayor que cero." />
-                    <p class="self-end text-xs text-muted">Cambios y cancelaciones: hasta {{ config('reservations.change_deadline_hours') }} h antes del horario. Lo no recogido pasa a donación.</p>
+                                   hint="Solo si no hay adelanto fijo. Vacío = cualquier adelanto mayor que cero." />
+                    <p class="text-xs text-muted sm:col-span-2">Cambios y cancelaciones: hasta {{ config('reservations.change_deadline_hours') }} h antes del horario. Lo no recogido pasa a donación.</p>
                     <x-admin.textarea label="Instrucciones de pago y recojo" model="form.reservation_instructions" rows="3" class="sm:col-span-2"
-                                      hint="Se muestran al reservar y en la página del QR. Usa solo métodos oficiales." />
+                                      hint="Se muestran al reservar, junto a los métodos de pago publicados, y en la página de la reserva." />
                 </div>
             </fieldset>
         @endif

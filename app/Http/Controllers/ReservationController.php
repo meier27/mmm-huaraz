@@ -3,11 +3,10 @@
 namespace App\Http\Controllers;
 
 use App\Models\Reservation;
-use App\Services\QrCode;
 use Illuminate\Http\Response;
 
 /**
- * Consulta pública de una reserva mediante su token (enlace o QR).
+ * Consulta pública de una reserva mediante su token (enlace privado del cliente).
  */
 class ReservationController extends Controller
 {
@@ -19,22 +18,10 @@ class ReservationController extends Controller
             ->view('reservations.show', [
                 'reservation' => $reservation,
                 'event' => $reservation->event,
-                'qrSvg' => QrCode::svg($reservation->publicUrl()),
                 'token' => $token,
             ])
             ->header('Cache-Control', 'no-store, private')
             ->header('X-Robots-Tag', 'noindex, nofollow');
-    }
-
-    public function qr(string $token): Response
-    {
-        $reservation = $this->resolve($token);
-
-        return response(QrCode::svg($reservation->publicUrl(), 600), 200, [
-            'Content-Type' => 'image/svg+xml',
-            'Content-Disposition' => 'attachment; filename="reserva-'.$reservation->code.'.svg"',
-            'Cache-Control' => 'no-store, private',
-        ]);
     }
 
     private function resolve(string $token): Reservation

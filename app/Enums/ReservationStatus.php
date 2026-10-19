@@ -11,7 +11,7 @@ enum ReservationStatus: string
     public function label(): string
     {
         return match ($this) {
-            self::Pending => 'Pendiente de adelanto',
+            self::Pending => 'Por verificar',
             self::Confirmed => 'Confirmada',
             self::Cancelled => 'Cancelada',
         };

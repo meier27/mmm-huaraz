@@ -88,6 +88,7 @@
         <meta name="robots" content="noindex, nofollow">
     @endif
     @vite(['resources/css/app.css', 'resources/js/reveal.js'])
+    <x-theme-style />
     @livewireStyles
 </head>
 <body class="flex min-h-dvh flex-col">
@@ -118,6 +119,15 @@
             </a>
 
             <div class="flex items-center gap-2 sm:gap-3">
+                {{-- Botón de menú redondo (naranja del portal); abierto: ✕ en blanco --}}
+                <button type="button" class="me-1 inline-flex size-14 items-center justify-center rounded-full shadow-lg transition-colors sm:size-16"
+                        :class="open ? 'bg-white text-primary-deep' : 'bg-accent-light text-primary-deep hover:bg-brand'"
+                        @click="open = !open" :aria-expanded="open.toString()" aria-controls="menu-movil" aria-expanded="false">
+                    <span class="sr-only" x-text="open ? 'Cerrar menú' : 'Abrir menú'">Abrir menú</span>
+                    <span x-show="!open"><x-ui.icon name="menu" class="size-7" /></span>
+                    <span x-show="open" x-cloak><x-ui.icon name="close" class="size-7" /></span>
+                </button>
+
                 {{--
                     Redes y contacto en círculos blancos (solo los que tienen enlace en
                     Panel › Datos del sitio). En móvil, solo Facebook, Instagram y WhatsApp.
@@ -147,15 +157,6 @@
                         @endforeach
                     </ul>
                 @endif
-
-                {{-- Botón de menú redondo (naranja del portal); abierto: ✕ en blanco --}}
-                <button type="button" class="ms-1 inline-flex size-14 items-center justify-center rounded-full shadow-lg transition-colors sm:size-16"
-                        :class="open ? 'bg-white text-primary-deep' : 'bg-accent-light text-primary-deep hover:bg-brand'"
-                        @click="open = !open" :aria-expanded="open.toString()" aria-controls="menu-movil" aria-expanded="false">
-                    <span class="sr-only" x-text="open ? 'Cerrar menú' : 'Abrir menú'">Abrir menú</span>
-                    <span x-show="!open"><x-ui.icon name="menu" class="size-7" /></span>
-                    <span x-show="open" x-cloak><x-ui.icon name="close" class="size-7" /></span>
-                </button>
             </div>
         </div>
 
@@ -223,11 +224,11 @@
             <nav aria-label="Secciones del evento" class="border-t border-sand-dark bg-cream text-primary">
                 <div class="container-content flex items-center gap-3">
                     <span class="hidden shrink-0 text-xs font-semibold tracking-wide text-brand-strong uppercase md:block">{{ $event->title }}</span>
-                    <ul class="-mx-1 flex gap-1 overflow-x-auto py-2 text-sm font-medium">
+                    <ul class="-mx-1 flex gap-1 overflow-x-auto py-2 text-sm font-medium" x-init="$nextTick(() => { const a = $el.querySelector('[aria-current]'); if (a) $el.scrollLeft = a.offsetLeft - ($el.clientWidth - a.offsetWidth) / 2 })">
                         @foreach ($eventNavigation as $item)
                             <li class="shrink-0">
                                 <a href="{{ route($item['route'], $event) }}"
-                                   @class(['block rounded-control px-3 py-1.5 hover:bg-white hover:text-brand-strong', 'bg-white text-brand-strong shadow-sm' => request()->routeIs($item['route'])])
+                                   @class(['flex min-h-10 items-center rounded-control px-3 hover:bg-white hover:text-brand-strong', 'bg-white text-brand-strong shadow-sm' => request()->routeIs($item['route'])])
                                    @if (request()->routeIs($item['route'])) aria-current="page" @endif>
                                     {{ $item['label'] }}
                                 </a>
@@ -280,10 +281,10 @@
                 {{-- Enlaces rápidos --}}
                 <nav aria-labelledby="pie-enlaces">
                     <h2 id="pie-enlaces" class="font-sans text-sm font-bold text-white">Enlaces rápidos</h2>
-                    <ul class="mt-4 grid grid-cols-2 gap-x-6 gap-y-2.5">
+                    <ul class="mt-3 grid grid-cols-2 gap-x-6 sm:mt-4 sm:gap-y-2.5">
                         @foreach ([['url' => route('home'), 'label' => 'Inicio'], ...$navigation] as $item)
                             <li>
-                                <a href="{{ $item['url'] }}" class="group inline-flex items-center gap-1.5 transition-colors hover:text-white">
+                                <a href="{{ $item['url'] }}" class="group inline-flex min-h-10 items-center gap-1.5 transition-colors hover:text-white sm:min-h-0">
                                     <x-ui.icon name="chevron-right" class="size-3.5 text-brand transition group-hover:translate-x-0.5" /> {{ $item['label'] }}
                                 </a>
                             </li>
@@ -349,7 +350,7 @@
                 {{-- Medios oficiales --}}
                 <div>
                     <h2 class="font-sans text-sm font-bold text-white">Medios oficiales</h2>
-                    <ul class="mt-4 space-y-2.5">
+                    <ul class="mt-3 sm:mt-4 sm:space-y-2.5">
                         @foreach ([
                             ['Portal oficial MMM Perú', config('convention.official_url')],
                             ['Bethel Televisión', config('bible.bethel_tv_url')],
@@ -357,7 +358,7 @@
                             ['Impacto Evangelístico', config('convention.impacto_url')],
                         ] as [$label, $url])
                             <li>
-                                <a href="{{ $url }}" class="group inline-flex items-center gap-1.5 transition-colors hover:text-white" rel="noopener" target="_blank">
+                                <a href="{{ $url }}" class="group inline-flex min-h-10 items-center gap-1.5 transition-colors hover:text-white sm:min-h-0" rel="noopener" target="_blank">
                                     <x-ui.icon name="chevron-right" class="size-3.5 text-brand transition group-hover:translate-x-0.5" /> {{ $label }}<span class="sr-only"> (se abre en una pestaña nueva)</span>
                                 </a>
                             </li>
@@ -370,7 +371,7 @@
         <div class="border-t border-white/10">
             <div class="container-content flex flex-col gap-2 py-5 text-xs text-cream/60 sm:flex-row sm:items-center sm:justify-between">
                 <p>© {{ now()->year }} {{ $site->church_name }} · {{ config('convention.organization') }}</p>
-                <a href="{{ route('login') }}" rel="nofollow" class="inline-flex items-center gap-1.5 hover:text-white"><x-ui.icon name="user" class="size-3.5" /> Acceso al panel</a>
+                <a href="{{ route('login') }}" rel="nofollow" class="inline-flex min-h-10 items-center gap-1.5 hover:text-white sm:min-h-0"><x-ui.icon name="user" class="size-3.5" /> Acceso al panel</a>
             </div>
         </div>
     </footer>

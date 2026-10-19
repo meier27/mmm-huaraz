@@ -48,7 +48,7 @@ class ChurchEvent extends Model
         'image_alt', 'hero_text', 'hero_button_label', 'hero_button_url', 'hero_show_title', 'hero_show_buttons', 'donation_reports_enabled',
         'external_url', 'is_published', 'is_featured',
         'has_program', 'has_venues', 'has_food', 'has_donations', 'has_accommodations', 'has_tourism',
-        'reservations_open', 'reservations_title', 'reservation_instructions', 'deposit_min_percent',
+        'reservations_open', 'reservations_title', 'reservation_instructions', 'deposit_min_percent', 'deposit_amount',
     ];
 
     protected function casts(): array
@@ -69,6 +69,7 @@ class ChurchEvent extends Model
             'has_tourism' => 'boolean',
             'reservations_open' => 'boolean',
             'deposit_min_percent' => 'integer',
+            'deposit_amount' => 'decimal:2',
         ];
     }
 
@@ -256,9 +257,16 @@ class ChurchEvent extends Model
             ?: 'Actividad solidaria'.($this->city ? " de los hermanos de {$this->city}" : '');
     }
 
-    /** Adelanto mínimo exigido para un total dado (0.00 si no hay mínimo configurado). */
+    /**
+     * Adelanto mínimo exigido para un total dado (0.00 si no hay mínimo configurado).
+     * El adelanto fijo, si existe, manda sobre el porcentaje; nunca supera el total.
+     */
     public function minimumDeposit(string $total): string
     {
+        if ($this->hasFixedDeposit()) {
+            return bccomp((string) $this->deposit_amount, $total, 2) > 0 ? bcadd($total, '0', 2) : (string) $this->deposit_amount;
+        }
+
         if (! $this->deposit_min_percent) {
             return '0.00';
         }
@@ -268,6 +276,11 @@ class ChurchEvent extends Model
         $cents = (int) ceil((float) bcmul($raw, '100', 4));
 
         return number_format($cents / 100, 2, '.', '');
+    }
+
+    public function hasFixedDeposit(): bool
+    {
+        return $this->deposit_amount !== null && bccomp((string) $this->deposit_amount, '0', 2) > 0;
     }
 
     public function renderedBody(): HtmlString

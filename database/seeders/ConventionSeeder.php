@@ -41,6 +41,8 @@ class ConventionSeeder extends Seeder
                 'has_donations' => true,
                 'has_accommodations' => true,
                 'has_tourism' => true,
+                // Adelanto por reserva de comida confirmado por la organización.
+                'deposit_amount' => '5.00',
             ]);
             $event->slug = $slug;
             $event->save();

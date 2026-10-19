@@ -1,7 +1,15 @@
 @import 'tailwindcss';
-/* Tipografía servida desde el propio sitio (licencia OFL), sin llamadas a Google. */
+/*
+ * Tipografía servida desde el propio sitio (licencia OFL), sin llamadas a Google.
+ * Son las fuentes que se pueden elegir en Panel › Apariencia (App\Support\Theme);
+ * el navegador solo descarga la que esté en uso.
+ */
 @import '@fontsource-variable/merriweather';
 @import '@fontsource-variable/open-sans';
+@import '@fontsource-variable/roboto';
+@import '@fontsource-variable/montserrat';
+@import '@fontsource-variable/roboto-slab';
+@import '@fontsource-variable/playfair-display';
 
 @source '../../vendor/laravel/framework/src/Illuminate/Pagination/resources/views/*.blade.php';
 @source '../../storage/framework/views/*.php';
@@ -17,6 +25,8 @@
  * para cumplir contraste WCAG AA. Sustituir cuando la organización entregue la
  * paleta oficial.
  */
+/* Colores y fuentes principales: valores predeterminados; el panel puede
+   redefinirlos (Panel › Apariencia → App\Support\Theme). */
 @theme {
     /* Merriweather (títulos) + Open Sans (texto). */
     --font-sans: 'Open Sans Variable', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, Arial, sans-serif;
@@ -41,6 +51,12 @@
     --color-brand-strong: #b04e09;   /* derivado — botones naranjas con texto blanco (5.3:1) */
     --color-accent-light: #f39c12;   /* observado — naranja claro (inicio de los degradados) */
     --color-accent-warm: #f66e06;    /* observado — naranja intenso (fin del degradado del chevron) */
+
+    /* Degradados de las tarjetas destacadas: del principal a este café (editable en el panel). */
+    --color-gradient-end: #5b3b26;   /* derivado — final de los degradados oscuros */
+    /* Degradado naranja (bloque destacado): se deriva del color de botones. */
+    --color-highlight-via: color-mix(in srgb, var(--color-brand-strong) 87%, black);
+    --color-highlight-end: color-mix(in srgb, var(--color-brand-strong) 62%, black);
 
     /* Azul del portal internacional: SOLO acentos puntuales, nunca texto. */
     --color-blue: #032659;           /* observado */

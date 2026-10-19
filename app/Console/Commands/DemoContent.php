@@ -253,7 +253,7 @@ class DemoContent extends Command
     {
         $faqs = [
             ['¿Necesito inscribirme para asistir a la convención?', 'Respuesta de ejemplo. Escribe aquí la indicación oficial de la organización.'],
-            ['¿Cómo reservo mi comida?', 'Respuesta de ejemplo. Elige tu plato en la sección Reservas y recógelo con tu código QR.'],
+            ['¿Cómo reservo mi comida?', 'Respuesta de ejemplo. Elige tu plato en la sección Reservas y recógelo con tu código de reserva.'],
             ['¿Hay lugar para niños?', 'Respuesta de ejemplo. Indica aquí si habrá actividades o espacio para niños.'],
         ];
 

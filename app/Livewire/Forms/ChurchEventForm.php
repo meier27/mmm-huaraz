@@ -70,6 +70,8 @@ class ChurchEventForm extends ContentForm
 
     public int|string|null $deposit_min_percent = '';
 
+    public string|float|null $deposit_amount = '';
+
     /** @var TemporaryUploadedFile|null */
     public $image = null;
 
@@ -109,6 +111,7 @@ class ChurchEventForm extends ContentForm
             'reservations_title' => ['nullable', 'string', 'max:150'],
             'reservation_instructions' => ['nullable', 'string', 'max:2000'],
             'deposit_min_percent' => ['nullable', 'integer', 'min:1', 'max:100'],
+            'deposit_amount' => ['nullable', 'decimal:0,2', 'min:0.10', 'max:9999.99'],
             'image' => ['nullable', 'image', 'mimes:jpg,jpeg,png,webp', 'max:4096', 'dimensions:max_width=4000,max_height=4000'],
         ];
     }

@@ -19,9 +19,12 @@ class Reservation extends Model
 {
     use Auditable, BelongsToEvent;
 
+    /** Disco privado de las capturas del adelanto. */
+    public const PROOF_DISK = 'local';
+
     protected $guarded = ['*'];
 
-    protected $hidden = ['token_hash', 'token_encrypted', 'idempotency_key'];
+    protected $hidden = ['token_hash', 'token_encrypted', 'idempotency_key', 'deposit_proof_path'];
 
     protected function casts(): array
     {
@@ -88,6 +91,12 @@ class Reservation extends Model
     public function hasPayments(): bool
     {
         return bccomp((string) $this->amount_paid, '0', 2) > 0;
+    }
+
+    /** El cliente envió la captura del adelanto y el personal aún no la revisó. */
+    public function awaitsDepositReview(): bool
+    {
+        return $this->deposit_proof_path !== null && ! $this->hasPayments() && ! $this->isClosed();
     }
 
     public function isFullyPaid(): bool

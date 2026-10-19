@@ -27,7 +27,12 @@
          }"
          x-on:keydown.arrow-right="next(); start()" x-on:keydown.arrow-left="prev(); start()">
 
-    <div class="relative min-h-172 overflow-hidden sm:min-h-192 lg:min-h-208">
+    @php
+        // Solo afiches (sin texto encima): en móvil se muestran completos, con su
+        // proporción, debajo de la cabecera; recortarlos a lo alto cortaría su texto.
+        $posters = $banners->every(fn ($b) => $b->imageUrl() && ! $b->title && ! $b->subtitle && ! $b->cta_label);
+    @endphp
+    <div @class(['relative overflow-hidden sm:min-h-192 lg:min-h-208', 'min-h-172' => ! $posters, 'mt-24 aspect-[5/2] sm:mt-0 sm:aspect-auto' => $posters])>
         @foreach ($banners as $banner)
             <div
                  role="group" aria-roledescription="diapositiva" aria-label="{{ $loop->iteration }} de {{ $banners->count() }}"

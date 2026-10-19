@@ -14,7 +14,7 @@
     @if ($block->type === \App\Enums\AboutBlockType::Quote)
         {{-- Cita con autor --}}
         <figure @class(['relative', 'pt-10 md:pt-28' => $block->imageUrl() && ! $block->photo_frame])>
-            <div @class(['relative rounded-card bg-linear-to-r from-primary-deep via-primary to-[#5b3b26] text-cream shadow-[0_30px_60px_-30px_rgb(57_49_45/0.7)]',
+            <div @class(['relative rounded-card bg-linear-to-r from-primary-deep via-primary to-gradient-end text-cream shadow-[0_30px_60px_-30px_rgb(57_49_45/0.7)]',
                          'md:grid md:grid-cols-[minmax(0,2fr)_minmax(0,3fr)] md:items-end' => $block->imageUrl(),
                          'overflow-hidden md:overflow-visible' => $block->imageUrl() && $block->photo_frame])>
                 {{-- Puntos decorativos en las esquinas (detrás de la tarjeta) --}}
@@ -77,7 +77,7 @@
                          'md:col-span-6 md:col-start-7 md:-ms-6' => $block->imageUrl() && ! $photoRight,
                          'md:col-span-6 md:col-start-1 md:-me-6' => $block->imageUrl() && $photoRight,
                          'bg-white text-ink' => ! $highlight,
-                         'bg-linear-to-br from-brand-strong via-[#9a4407] to-[#6e3005] text-white' => $highlight])>
+                         'bg-linear-to-br from-brand-strong via-highlight-via to-highlight-end text-white' => $highlight])>
                 <div class="absolute top-6 right-6 flex flex-col items-center gap-2" aria-hidden="true">
                     <svg viewBox="0 0 24 24" @class(['size-6', 'text-accent-light' => ! $highlight, 'text-white' => $highlight])><path fill="currentColor" d="{{ $petal }}" /></svg>
                     <span @class(['h-8 w-2 rounded-full', 'bg-primary-soft' => ! $highlight, 'bg-white' => $highlight])></span>

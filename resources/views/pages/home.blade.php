@@ -26,35 +26,75 @@
         </section>
     @endif
 
-    {{-- ===== 2. Accesos destacados: una franja blanca dividida en tres ===== --}}
+    {{-- ===== 2. Accesos destacados: dos accesos y el próximo evento resaltado ===== --}}
     @php
         $highlightCards = [
             ['url' => route('teachings.index'), 'icon' => 'book', 'label' => 'Palabra', 'title' => 'Enseñanzas', 'text' => 'Predicaciones y estudios'],
             ['url' => route('bethel'), 'icon' => 'tv', 'label' => 'En vivo', 'title' => 'Bethel TV', 'text' => 'Señal del canal oficial'],
-            $featured && ! $featured->isOver()
-                ? ['url' => route('events.show', $featured), 'icon' => 'calendar', 'label' => 'Próximo evento', 'title' => $featured->title, 'text' => $featured->dateLabel() ?: ($featured->city ?? 'Conoce los detalles')]
-                : ['url' => route('events.index'), 'icon' => 'calendar', 'label' => 'Agenda', 'title' => 'Eventos', 'text' => 'Actividades de la iglesia'],
         ];
+        $upcoming = $featured && ! $featured->isOver() ? $featured : null;
+        // Días que faltan (solo con fecha de inicio futura; nada inventado).
+        $daysLeft = $upcoming?->starts_on?->isFuture() ? (int) today()->diffInDays($upcoming->starts_on) : null;
     @endphp
     {{-- Va debajo del carrusel, sin montarse encima: los banners (afiches) se ven completos. --}}
     <section class="relative z-30 bg-cream pt-6 sm:pt-8" aria-label="Accesos destacados">
         <div class="container-content">
-            <ul class="grid divide-y divide-line overflow-hidden rounded-card bg-white shadow-[0_18px_40px_-18px_rgb(57_49_45/0.35)] ring-1 ring-black/5 sm:grid-cols-3 sm:divide-x sm:divide-y-0">
+            <ul class="grid gap-3 sm:grid-cols-2 lg:grid-cols-[1fr_1fr_1.45fr] lg:gap-4">
                 @foreach ($highlightCards as $card)
                     <li>
-                        <a href="{{ $card['url'] }}" class="group flex h-full items-center gap-4 px-5 py-5 transition-colors hover:bg-cream-light sm:px-6 sm:py-6">
-                            <span class="inline-flex size-12 shrink-0 items-center justify-center rounded-full bg-cream text-brand-strong transition-colors group-hover:bg-brand-strong group-hover:text-white">
-                                <x-ui.icon :name="$card['icon']" class="size-5" />
+                        <a href="{{ $card['url'] }}" class="group flex h-full items-center gap-4 rounded-card bg-white px-5 py-5 shadow-[0_18px_40px_-24px_rgb(57_49_45/0.4)] ring-1 ring-black/5 transition hover:-translate-y-0.5 hover:shadow-[0_24px_44px_-22px_rgb(57_49_45/0.45)] sm:px-6 sm:py-6">
+                            <span class="inline-flex size-12 shrink-0 items-center justify-center rounded-2xl bg-cream text-brand-strong transition-colors group-hover:bg-brand-strong group-hover:text-white">
+                                <x-ui.icon :name="$card['icon']" class="size-6" />
                             </span>
                             <span class="min-w-0 flex-1">
-                                <span class="block text-xs font-semibold tracking-[0.14em] text-primary-soft uppercase">{{ $card['label'] }}</span>
-                                <span class="mt-0.5 block font-display text-lg leading-snug font-bold text-primary">{{ $card['title'] }}</span>
+                                <span class="block text-[0.7rem] font-bold tracking-[0.16em] text-brand-strong uppercase">{{ $card['label'] }}</span>
+                                <span class="mt-0.5 block font-display text-xl leading-snug font-bold text-primary">{{ $card['title'] }}</span>
                                 <span class="block text-sm text-muted">{{ $card['text'] }}</span>
                             </span>
                             <x-ui.icon name="arrow-right" class="size-5 shrink-0 text-primary-soft transition group-hover:translate-x-1 group-hover:text-brand-strong" />
                         </a>
                     </li>
                 @endforeach
+
+                <li class="sm:col-span-2 lg:col-span-1">
+                    @if ($upcoming)
+                        <a href="{{ route('events.show', $upcoming) }}"
+                           class="group relative isolate flex h-full items-center gap-4 overflow-hidden rounded-card bg-linear-to-br from-primary-deep via-primary to-gradient-end px-5 py-5 text-white shadow-[0_24px_50px_-24px_rgb(57_49_45/0.8)] transition hover:-translate-y-0.5 sm:px-6 sm:py-6">
+                            <span class="absolute -top-16 -right-10 -z-10 size-48 rounded-full bg-brand/30 blur-3xl" aria-hidden="true"></span>
+                            <x-ui.mountains class="absolute inset-x-0 bottom-0 -z-10 h-12 text-white/5" />
+                            <span class="inline-flex size-12 shrink-0 items-center justify-center rounded-2xl bg-accent-light text-primary-deep shadow-lg">
+                                <x-ui.icon name="calendar" class="size-6" />
+                            </span>
+                            <span class="min-w-0 flex-1">
+                                <span class="flex flex-wrap items-center gap-x-2 gap-y-1 text-[0.7rem] font-bold tracking-[0.16em] text-accent-light uppercase">
+                                    Próximo evento
+                                    @if ($daysLeft !== null)
+                                        <span class="rounded-full bg-white/15 px-2 py-0.5 tracking-normal normal-case text-white">
+                                            {{ $daysLeft === 1 ? 'Mañana' : "Faltan {$daysLeft} días" }}
+                                        </span>
+                                    @endif
+                                </span>
+                                <span class="mt-0.5 block font-display text-xl leading-tight font-bold text-white sm:text-2xl">
+                                    {{ $upcoming->title }}@if ($upcoming->city)<span class="text-accent-light"> · {{ $upcoming->city }}</span>@endif
+                                </span>
+                                <span class="mt-0.5 block text-sm text-cream/80">{{ $upcoming->dateLabel() ?: 'Conoce los detalles' }}@if ($upcoming->location) · {{ $upcoming->location }}@endif</span>
+                            </span>
+                            <span class="inline-flex size-10 shrink-0 items-center justify-center rounded-full bg-white/10 ring-1 ring-white/20 transition group-hover:bg-accent-light group-hover:text-primary-deep">
+                                <x-ui.icon name="arrow-right" class="size-5 transition group-hover:translate-x-0.5" />
+                            </span>
+                        </a>
+                    @else
+                        <a href="{{ route('events.index') }}" class="group flex h-full items-center gap-4 rounded-card bg-white px-5 py-5 shadow-[0_18px_40px_-24px_rgb(57_49_45/0.4)] ring-1 ring-black/5 transition hover:-translate-y-0.5 sm:px-6 sm:py-6">
+                            <span class="inline-flex size-12 shrink-0 items-center justify-center rounded-2xl bg-cream text-brand-strong"><x-ui.icon name="calendar" class="size-6" /></span>
+                            <span class="min-w-0 flex-1">
+                                <span class="block text-[0.7rem] font-bold tracking-[0.16em] text-brand-strong uppercase">Agenda</span>
+                                <span class="mt-0.5 block font-display text-xl leading-snug font-bold text-primary">Eventos</span>
+                                <span class="block text-sm text-muted">Actividades de la iglesia</span>
+                            </span>
+                            <x-ui.icon name="arrow-right" class="size-5 shrink-0 text-primary-soft transition group-hover:translate-x-1 group-hover:text-brand-strong" />
+                        </a>
+                    @endif
+                </li>
             </ul>
         </div>
     </section>

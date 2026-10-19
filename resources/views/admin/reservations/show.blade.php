@@ -3,7 +3,7 @@
         <x-ui.icon name="chevron-left" class="size-4" /> Reservas
     </a>
 
-    <div class="mt-3 grid gap-6 lg:grid-cols-[1fr_20rem]">
+    <div class="mt-3 grid grid-cols-1 gap-6 lg:grid-cols-[1fr_20rem]">
         <div class="space-y-6">
             <div class="rounded-card bg-white p-5 shadow-card">
                 <p class="text-sm text-muted">Código</p>
@@ -28,14 +28,17 @@
             <livewire:reservation-status-panel :reservation-id="$reservation->id" />
         </div>
 
-        <aside class="rounded-card bg-white p-5 shadow-card" x-data="{ copied: false }">
+        <aside class="self-start rounded-card bg-white p-5 shadow-card" x-data="{ copied: false }">
             <h2 class="font-bold">Enlace del cliente</h2>
-            <p class="mt-1 text-sm text-muted">Compártelo solo con el titular si perdió su QR.</p>
-            <div class="mx-auto mt-3 w-40 [&>svg]:h-auto [&>svg]:w-full" role="img" aria-label="Código QR de la reserva">{!! $qrSvg !!}</div>
-            <x-ui.button variant="secondary" class="mt-3 w-full"
-                         x-on:click="navigator.clipboard?.writeText(@js($publicUrl)).then(() => { copied = true; setTimeout(() => copied = false, 2000) })">
-                <span x-show="!copied">Copiar enlace</span><span x-show="copied" x-cloak role="status">Copiado</span>
-            </x-ui.button>
+            @if ($publicUrl)
+                <p class="mt-1 text-sm text-muted">Compártelo solo con el titular si perdió el enlace de su reserva.</p>
+                <x-ui.button variant="secondary" class="mt-3 w-full"
+                             x-on:click="navigator.clipboard?.writeText(@js($publicUrl)).then(() => { copied = true; setTimeout(() => copied = false, 2000) })">
+                    <span x-show="!copied">Copiar enlace</span><span x-show="copied" x-cloak role="status">Copiado</span>
+                </x-ui.button>
+            @else
+                <p class="mt-1 text-sm text-warning">No se puede recuperar el enlace: la reserva se cifró con otra clave del servidor (APP_KEY). El cliente puede identificarse con su código.</p>
+            @endif
         </aside>
     </div>
 </x-layouts.admin>

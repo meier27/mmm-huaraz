@@ -3,7 +3,7 @@
         Comunícate con la iglesia o con la organización de la convención.
     </x-ui.page-intro>
 
-    <div class="container-content grid gap-10 py-10 lg:grid-cols-[1fr_2fr]">
+    <div class="container-content grid grid-cols-1 gap-10 py-10 lg:grid-cols-[1fr_2fr]">
         <section aria-labelledby="datos-contacto">
             <h2 id="datos-contacto" class="text-xl font-bold">Datos de contacto</h2>
 

@@ -22,12 +22,12 @@ use App\Models\Venue;
 use App\Services\ReservationService;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 use Livewire\Features\SupportLockedProperties\CannotUpdateLockedPropertyException;
 use Livewire\Livewire;
-use Illuminate\Http\UploadedFile;
-use Illuminate\Support\Facades\Storage;
 use Tests\Concerns\CreatesOfferings;
 use Tests\TestCase;
 
@@ -196,10 +196,12 @@ class EventModulesTest extends TestCase
         }
 
         // Desde la página del evento A no se puede reservar un plato de B.
+        Storage::fake('local');
         Livewire::test(ReservationForm::class, ['event' => $a])
             ->set("quantities.{$fromB->id}", 1)
             ->set('customer_name', 'Ana Prueba')
             ->set('customer_phone', '900000001')
+            ->set('deposit_proof', UploadedFile::fake()->image('adelanto.jpg', 600, 900))
             ->call('submit')
             ->assertHasErrors('quantities');
 

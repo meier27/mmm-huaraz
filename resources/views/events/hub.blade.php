@@ -22,6 +22,8 @@
             @if ($hasHeroText)
                 {{-- Velo solo detrás del texto (izquierda) --}}
                 <div class="absolute inset-0 -z-10 bg-linear-to-r from-black/65 via-black/30 to-transparent" aria-hidden="true"></div>
+                {{-- En móvil el texto ocupa todo el ancho: velo parejo para que se lea sobre cualquier afiche. --}}
+                <div class="absolute inset-0 -z-10 bg-black/35 sm:hidden" aria-hidden="true"></div>
             @endif
             <div class="absolute inset-x-0 bottom-0 -z-10 h-40 bg-linear-to-t from-black/40 to-transparent" aria-hidden="true"></div>
         @else
@@ -107,7 +109,7 @@
     {{-- ===== Bienvenida ===== --}}
     @if ($event->body)
         <section class="container-content py-16 sm:py-20">
-            <div class="grid gap-8 lg:grid-cols-[1fr_20rem] lg:items-center">
+            <div class="grid grid-cols-1 gap-8 lg:grid-cols-[1fr_20rem] lg:items-center">
                 <div>
                     <p class="text-sm font-semibold tracking-[0.2em] text-brand-strong uppercase">Bienvenidos</p>
                     <div class="rich-text mt-3">{{ $event->renderedBody() }}</div>
@@ -127,12 +129,12 @@
     {{-- ===== Programa (destacado: va primero) ===== --}}
     @if ($event->has_program)
     <section class="container-content py-12 sm:py-16" aria-labelledby="programa-titulo">
-        <div class="relative isolate overflow-hidden rounded-card bg-linear-to-br from-primary-deep via-primary to-[#5b3b26] px-6 py-10 text-white shadow-[0_30px_60px_-30px_rgb(57_49_45/0.7)] sm:px-10 sm:py-14"
+        <div class="relative isolate overflow-hidden rounded-card bg-linear-to-br from-primary-deep via-primary to-gradient-end px-6 py-10 text-white shadow-[0_30px_60px_-30px_rgb(57_49_45/0.7)] sm:px-10 sm:py-14"
              x-data="{ day: {{ $nextDay?->id ?? 'null' }} }">
             <div class="absolute -top-24 -right-24 -z-10 size-96 rounded-full bg-brand/25 blur-3xl" aria-hidden="true"></div>
             <x-ui.mountains class="absolute inset-x-0 bottom-0 -z-10 h-28 text-white/5" />
 
-            <div class="grid gap-10 lg:grid-cols-[18rem_1fr] lg:gap-14">
+            <div class="grid grid-cols-1 gap-10 lg:grid-cols-[18rem_1fr] lg:gap-14">
                 <div>
                     <x-ui.section-label :dark="true">Programa</x-ui.section-label>
                     <h2 id="programa-titulo" class="mt-3 text-4xl leading-tight font-extrabold text-white sm:text-5xl">Días de bendición</h2>
@@ -201,7 +203,7 @@
                     <div>
                         <p class="text-sm font-semibold tracking-[0.2em] text-brand-strong uppercase">Apoya la obra</p>
                         <h2 id="reservas-titulo" class="mt-2 text-3xl font-extrabold sm:text-4xl">{{ $event->reservationsTitle() }}</h2>
-                        <p class="mt-2 max-w-xl text-muted">Platos preparados por los hermanos{{ $event->city ? ' de '.$event->city : '' }}. Reserva con anticipación y recoge tu pedido con tu código QR: lo recaudado apoya la obra.</p>
+                        <p class="mt-2 max-w-xl text-muted">Platos preparados por los hermanos{{ $event->city ? ' de '.$event->city : '' }}. Reserva con anticipación y recoge tu pedido con tu código de reserva: lo recaudado apoya la obra.</p>
                     </div>
                     <x-ui.button href="{{ route('events.reservations', $event) }}">Reservar mi plato <x-ui.icon name="arrow-right" class="size-5" /></x-ui.button>
                 </div>

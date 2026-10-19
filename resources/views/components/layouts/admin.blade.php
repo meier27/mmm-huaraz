@@ -14,11 +14,13 @@
     $groups = auth()->check() ? collect([
         'General' => [
             ['route' => 'admin.dashboard', 'label' => 'Inicio', 'icon' => 'home', 'can' => 'access-admin'],
-            ['route' => 'admin.reservations', 'label' => 'Reservas', 'icon' => 'qr', 'can' => 'manage-reservations', 'active' => 'admin.reservations*'],
+            ['route' => 'admin.reservations.verify', 'label' => 'Verificar código', 'icon' => 'search', 'can' => 'manage-reservations'],
+            ['route' => 'admin.reservations', 'label' => 'Reservas', 'icon' => 'utensils', 'can' => 'manage-reservations', 'active' => ['admin.reservations', 'admin.reservations.show']],
             ['route' => 'admin.donations', 'label' => 'Aportes', 'icon' => 'coins', 'can' => 'manage-donations', 'badge' => 'donations'],
         ],
         'Sitio web' => [
             ['route' => 'admin.site', 'label' => 'Datos del sitio', 'icon' => 'settings', 'can' => 'manage-content'],
+            ['route' => 'admin.appearance', 'label' => 'Apariencia', 'icon' => 'image', 'can' => 'manage-content'],
             ['route' => 'admin.social', 'label' => 'Redes sociales', 'icon' => 'facebook', 'can' => 'manage-content'],
             ['route' => 'admin.banners', 'label' => 'Banners', 'icon' => 'image', 'can' => 'manage-content'],
             ['route' => 'admin.gallery', 'label' => 'Fotos «Nuestra familia»', 'icon' => 'users', 'can' => 'manage-content'],
@@ -56,6 +58,7 @@
     <meta name="robots" content="noindex, nofollow">
     <title>{{ $title }} · Administración · {{ config('app.name') }}</title>
     @vite('resources/css/app.css')
+    <x-theme-style />
     @livewireStyles
 </head>
 <body class="min-h-dvh bg-stone-100" x-data="{ menu: false }" x-on:keydown.escape.window="menu = false">

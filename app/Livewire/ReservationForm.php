@@ -4,6 +4,7 @@ namespace App\Livewire;
 
 use App\Models\ChurchEvent;
 use App\Models\DishOffering;
+use App\Models\DonationMethod;
 use App\Services\ReservationService;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\RateLimiter;
@@ -13,10 +14,14 @@ use Illuminate\View\View;
 use Livewire\Attributes\Layout;
 use Livewire\Attributes\Locked;
 use Livewire\Component;
+use Livewire\Features\SupportFileUploads\TemporaryUploadedFile;
+use Livewire\WithFileUploads;
 
 #[Layout('components.layouts.public')]
 class ReservationForm extends Component
 {
+    use WithFileUploads;
+
     /** @var array<int|string, int|string> id de oferta => porciones */
     public array $quantities = [];
 
@@ -25,6 +30,13 @@ class ReservationForm extends Component
     public string $customer_phone = '';
 
     public string $notes = '';
+
+    /**
+     * Captura del adelanto: se exige antes de enviar la reserva.
+     *
+     * @var TemporaryUploadedFile|null
+     */
+    public $deposit_proof = null;
 
     #[Locked]
     public string $idempotencyKey = '';
@@ -61,11 +73,16 @@ class ReservationForm extends Component
             'customer_name' => ['required', 'string', 'min:3', 'max:120'],
             'customer_phone' => ['required', 'string', 'max:30', 'regex:/^\+?[0-9\s()-]{6,20}$/'],
             'notes' => ['nullable', 'string', 'max:500'],
-        ], [], [
+            // Tipo real comprobado por contenido (mimes), no por la extensión.
+            'deposit_proof' => ['required', 'image', 'mimes:jpg,jpeg,png,webp', 'max:4096', 'dimensions:max_width=6000,max_height=6000'],
+        ], [
+            'deposit_proof.required' => 'Adjunta la captura de tu adelanto para enviar la reserva.',
+        ], [
             'quantities.*' => 'cantidad',
             'customer_name' => 'nombre',
             'customer_phone' => 'celular',
             'notes' => 'observaciones',
+            'deposit_proof' => 'captura del adelanto',
         ]);
 
         $reservation = $reservations->create(
@@ -75,6 +92,7 @@ class ReservationForm extends Component
             $data['notes'] ?: null,
             $this->idempotencyKey,
             $this->event,
+            $this->deposit_proof,
         );
 
         $this->redirect($reservation->publicUrl());
@@ -89,6 +107,7 @@ class ReservationForm extends Component
             'groups' => $offerings->groupBy(fn ($o) => $o->serve_date->toDateString()),
             'prices' => $offerings->mapWithKeys(fn ($o) => [$o->id => (float) $o->price]),
             'maxPerItem' => config('reservations.max_quantity_per_item'),
+            'paymentMethods' => DonationMethod::query()->published()->ordered()->get(),
         ])->title($this->event->reservationsTitle().' · '.$this->event->title)
             ->layoutData(['event' => $this->event]);
     }

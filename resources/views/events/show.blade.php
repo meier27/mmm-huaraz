@@ -4,7 +4,7 @@
             {{ $event->summary }}
         </x-ui.page-intro>
 
-        <div class="container-content grid gap-10 py-10 lg:grid-cols-[1fr_20rem] lg:items-start">
+        <div class="container-content grid grid-cols-1 gap-10 py-10 lg:grid-cols-[1fr_20rem] lg:items-start">
             <div>
                 @if ($event->imageUrl())
                     <img src="{{ $event->imageUrl() }}" alt="{{ $event->image_alt ?? '' }}" width="1200" height="675" class="mb-8 aspect-video w-full rounded-card object-cover" decoding="async">

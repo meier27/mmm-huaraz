@@ -53,24 +53,7 @@ class ChurchEventForm extends ContentForm
 
     public bool $has_venues = false;
 
-    public bool $has_food = false;
-
     public bool $has_donations = false;
-
-    public bool $has_accommodations = false;
-
-    public bool $has_tourism = false;
-
-    // Actividad de comidas
-    public bool $reservations_open = false;
-
-    public ?string $reservations_title = '';
-
-    public ?string $reservation_instructions = '';
-
-    public int|string|null $deposit_min_percent = '';
-
-    public string|float|null $deposit_amount = '';
 
     /** @var TemporaryUploadedFile|null */
     public $image = null;
@@ -102,16 +85,7 @@ class ChurchEventForm extends ContentForm
             'is_featured' => ['boolean'],
             'has_program' => ['boolean'],
             'has_venues' => ['boolean'],
-            'has_food' => ['boolean'],
             'has_donations' => ['boolean'],
-            'has_accommodations' => ['boolean'],
-            'has_tourism' => ['boolean'],
-            // No se pueden abrir reservas sin el módulo de comidas.
-            'reservations_open' => ['boolean', 'declined_if:has_food,false'],
-            'reservations_title' => ['nullable', 'string', 'max:150'],
-            'reservation_instructions' => ['nullable', 'string', 'max:2000'],
-            'deposit_min_percent' => ['nullable', 'integer', 'min:1', 'max:100'],
-            'deposit_amount' => ['nullable', 'decimal:0,2', 'min:0.10', 'max:9999.99'],
             'image' => ['nullable', 'image', 'mimes:jpg,jpeg,png,webp', 'max:4096', 'dimensions:max_width=4000,max_height=4000'],
         ];
     }
@@ -121,7 +95,6 @@ class ChurchEventForm extends ContentForm
         return [
             'ends_on.prohibited' => 'Indica primero la fecha de inicio.',
             'hero_button_url.regex' => 'Usa una ruta interna (p. ej. /eventos/mi-evento/programa) o una dirección que empiece por https://.',
-            'reservations_open.declined_if' => 'Activa el módulo «Comidas con reserva» para abrir las reservas.',
         ];
     }
 }

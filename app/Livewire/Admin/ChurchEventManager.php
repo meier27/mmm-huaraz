@@ -39,17 +39,17 @@ class ChurchEventManager extends ContentManager
         $this->redirectRoute('admin.events.edit', $this->findRecord($id), navigate: true);
     }
 
-    /** Un evento con contenido (programa, platos, reservas...) no se borra: se despublica. */
+    /** Un evento con contenido (programa, sedes, aportes...) no se borra: se despublica. */
     public function delete(int $id): void
     {
         /** @var ChurchEvent $event */
         $event = $this->findRecord($id);
 
-        $inUse = collect(['programDays', 'venues', 'dishes', 'accommodations', 'touristPlaces', 'reservations', 'donations'])
+        $inUse = collect(['programDays', 'venues', 'donations'])
             ->contains(fn (string $relation) => $event->{$relation}()->exists());
 
         if ($inUse) {
-            $this->addError('delete', "«{$event->title}» tiene contenido asociado (programa, platos, reservas…): despublícalo en lugar de eliminarlo.");
+            $this->addError('delete', "«{$event->title}» tiene contenido asociado (programa, sedes, aportes…): despublícalo en lugar de eliminarlo.");
 
             return;
         }

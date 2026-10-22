@@ -2,17 +2,14 @@
 
 namespace Tests\Feature;
 
-use App\Enums\AccommodationType;
 use App\Enums\DonationMethodType;
 use App\Enums\VenueKind;
-use App\Models\Accommodation;
 use App\Models\ChurchEvent;
 use App\Models\DonationMethod;
 use App\Models\Faq;
 use App\Models\ProgramDay;
 use App\Models\ProgramItem;
 use App\Models\SiteSetting;
-use App\Models\TouristPlace;
 use App\Models\Venue;
 use Database\Seeders\ConventionSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -43,8 +40,6 @@ class PublicPagesTest extends TestCase
             'programa' => ['/eventos/convencion-nacional-2026/programa'],
             'sede' => ['/eventos/convencion-nacional-2026/sede'],
             'donaciones' => ['/eventos/convencion-nacional-2026/donaciones'],
-            'hospedaje' => ['/eventos/convencion-nacional-2026/hospedaje'],
-            'turismo' => ['/eventos/convencion-nacional-2026/turismo'],
             'contacto' => ['/contacto'],
         ];
     }
@@ -55,11 +50,21 @@ class PublicPagesTest extends TestCase
         $this->get($uri)->assertOk()->assertSee('Saltar al contenido');
     }
 
+    /** El sitio es solo de contenido cristiano: no quedan comidas, hospedaje ni turismo. */
+    #[DataProvider('pages')]
+    public function test_pages_have_no_food_lodging_or_tourism_content(string $uri): void
+    {
+        $html = mb_strtolower(strip_tags($this->get($uri)->getContent()));
+
+        foreach (['reserva', 'platos', 'hospedaje', 'turismo', 'descubre huaraz', 'actividad solidaria'] as $word) {
+            $this->assertStringNotContainsString($word, $html, "«{$word}» aparece en {$uri}");
+        }
+    }
+
     public function test_empty_sections_say_information_is_pending_instead_of_inventing_it(): void
     {
         $this->get('/eventos/convencion-nacional-2026/programa')->assertSee('en cuanto la organización lo confirme');
         $this->get('/eventos/convencion-nacional-2026/donaciones')->assertSee('en cuanto la organización los confirme');
-        $this->get('/eventos/convencion-nacional-2026/hospedaje')->assertSee('en cuanto la organización las confirme');
         $this->get('/contacto')->assertSee('Los datos de contacto se publicarán aquí');
         $this->get('/eventos/convencion-nacional-2026/sede')->assertSee('Dirección exacta por confirmar.');
     }
@@ -81,14 +86,10 @@ class PublicPagesTest extends TestCase
         Faq::create(['question' => 'Pregunta oculta', 'answer' => 'x', 'is_published' => false]);
         DonationMethod::create(['type' => DonationMethodType::Yape, 'label' => 'Cuenta en borrador', 'is_published' => false]);
         $event = ['church_event_id' => ChurchEvent::featured()->id];
-        Accommodation::query()->forceCreate($event + ['type' => AccommodationType::Hotel, 'name' => 'Hotel en borrador', 'is_published' => false]);
-        TouristPlace::query()->forceCreate($event + ['name' => 'Lugar en borrador', 'is_published' => false]);
         Venue::query()->forceCreate($event + ['kind' => VenueKind::HostChurch, 'name' => 'Iglesia en borrador', 'is_published' => false]);
 
         $this->get('/contacto')->assertDontSee('Pregunta oculta');
         $this->get('/eventos/convencion-nacional-2026/donaciones')->assertDontSee('Cuenta en borrador');
-        $this->get('/eventos/convencion-nacional-2026/hospedaje')->assertDontSee('Hotel en borrador');
-        $this->get('/eventos/convencion-nacional-2026/turismo')->assertDontSee('Lugar en borrador');
         $this->get('/eventos/convencion-nacional-2026/sede')->assertDontSee('Iglesia en borrador');
     }
 
@@ -125,7 +126,7 @@ class PublicPagesTest extends TestCase
     {
         $this->get('/')->assertDontSee('Dónde estamos');
 
-        $site = \App\Models\SiteSetting::current();
+        $site = SiteSetting::current();
         $site->address = 'Av. Luzuriaga 234, Huaraz';
         $site->save();
 
@@ -151,7 +152,7 @@ class PublicPagesTest extends TestCase
 
     public function test_old_convention_urls_redirect_permanently(): void
     {
-        foreach (['programa', 'sede', 'reservas', 'donaciones', 'hospedaje', 'turismo'] as $old) {
+        foreach (['programa', 'sede', 'donaciones'] as $old) {
             // Al evento destacado (la convención sembrada).
             $this->get("/$old")->assertStatus(301)->assertRedirect("/eventos/convencion-nacional-2026/$old");
             $this->get("/eventos/convencion/$old")->assertStatus(301)->assertRedirect("/eventos/convencion-nacional-2026/$old");

@@ -82,10 +82,11 @@
                     <p class="font-display text-2xl leading-tight font-bold text-primary">Convención Nacional <span class="text-brand-strong">· Huaraz</span></p>
                     <p class="text-sm text-ink/80">Así se ve el texto de los párrafos con la fuente elegida.</p>
                     <div class="rounded-control bg-linear-to-br from-primary-deep via-primary to-gradient-end p-3 text-white">
-                        <div class="flex justify-between text-sm"><span class="text-cream/80">Total del pedido</span><span class="font-display text-lg font-extrabold">S/ 18.00</span></div>
-                        <div class="flex justify-between text-sm"><span class="text-cream/80">Adelanto</span><span class="font-bold text-accent-light">S/ 5.00</span></div>
+                        <p class="text-xs font-bold tracking-[0.14em] text-accent-light uppercase">Programa</p>
+                        <p class="font-display text-lg font-bold">Culto de adoración</p>
+                        <p class="text-sm text-cream/80">Así se ven las tarjetas destacadas.</p>
                     </div>
-                    <span class="inline-flex min-h-11 items-center rounded-full bg-brand-strong px-5 text-sm font-semibold text-white">Enviar reserva</span>
+                    <span class="inline-flex min-h-11 items-center rounded-full bg-brand-strong px-5 text-sm font-semibold text-white">Ver programa</span>
                 </div>
             </div>
         </aside>

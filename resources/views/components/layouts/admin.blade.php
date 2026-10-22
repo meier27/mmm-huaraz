@@ -14,8 +14,6 @@
     $groups = auth()->check() ? collect([
         'General' => [
             ['route' => 'admin.dashboard', 'label' => 'Inicio', 'icon' => 'home', 'can' => 'access-admin'],
-            ['route' => 'admin.reservations.verify', 'label' => 'Verificar código', 'icon' => 'search', 'can' => 'manage-reservations'],
-            ['route' => 'admin.reservations', 'label' => 'Reservas', 'icon' => 'utensils', 'can' => 'manage-reservations', 'active' => ['admin.reservations', 'admin.reservations.show']],
             ['route' => 'admin.donations', 'label' => 'Aportes', 'icon' => 'coins', 'can' => 'manage-donations', 'badge' => 'donations'],
         ],
         'Sitio web' => [

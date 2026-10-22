@@ -15,7 +15,7 @@ use Illuminate\Support\Str;
 /**
  * Evento del movimiento. Un evento simple solo tiene fecha, lugar y
  * descripción; uno grande (como la convención) activa módulos: programa,
- * sedes, comidas con reserva, donaciones, hospedaje y turismo.
+ * sedes y donaciones.
  */
 class ChurchEvent extends Model
 {
@@ -29,10 +29,7 @@ class ChurchEvent extends Model
     public const MODULES = [
         'program' => ['column' => 'has_program', 'label' => 'Programa', 'icon' => 'list'],
         'venues' => ['column' => 'has_venues', 'label' => 'Sedes y ubicación', 'icon' => 'map-pin'],
-        'food' => ['column' => 'has_food', 'label' => 'Comidas con reserva', 'icon' => 'utensils'],
         'donations' => ['column' => 'has_donations', 'label' => 'Donaciones', 'icon' => 'heart'],
-        'accommodations' => ['column' => 'has_accommodations', 'label' => 'Hospedaje', 'icon' => 'bed'],
-        'tourism' => ['column' => 'has_tourism', 'label' => 'Turismo', 'icon' => 'mountain'],
     ];
 
     /** Slugs que no puede usar un evento (rutas antiguas o reservadas). */
@@ -47,8 +44,7 @@ class ChurchEvent extends Model
         'title', 'slug', 'organization', 'theme', 'city', 'starts_on', 'ends_on', 'time_label', 'location', 'summary', 'body',
         'image_alt', 'hero_text', 'hero_button_label', 'hero_button_url', 'hero_show_title', 'hero_show_buttons', 'donation_reports_enabled',
         'external_url', 'is_published', 'is_featured',
-        'has_program', 'has_venues', 'has_food', 'has_donations', 'has_accommodations', 'has_tourism',
-        'reservations_open', 'reservations_title', 'reservation_instructions', 'deposit_min_percent', 'deposit_amount',
+        'has_program', 'has_venues', 'has_donations',
     ];
 
     protected function casts(): array
@@ -63,13 +59,7 @@ class ChurchEvent extends Model
             'donation_reports_enabled' => 'boolean',
             'has_program' => 'boolean',
             'has_venues' => 'boolean',
-            'has_food' => 'boolean',
             'has_donations' => 'boolean',
-            'has_accommodations' => 'boolean',
-            'has_tourism' => 'boolean',
-            'reservations_open' => 'boolean',
-            'deposit_min_percent' => 'integer',
-            'deposit_amount' => 'decimal:2',
         ];
     }
 
@@ -85,26 +75,6 @@ class ChurchEvent extends Model
     public function venues(): HasMany
     {
         return $this->hasMany(Venue::class);
-    }
-
-    public function dishes(): HasMany
-    {
-        return $this->hasMany(Dish::class);
-    }
-
-    public function accommodations(): HasMany
-    {
-        return $this->hasMany(Accommodation::class);
-    }
-
-    public function touristPlaces(): HasMany
-    {
-        return $this->hasMany(TouristPlace::class);
-    }
-
-    public function reservations(): HasMany
-    {
-        return $this->hasMany(Reservation::class);
     }
 
     public function donations(): HasMany
@@ -183,12 +153,6 @@ class ChurchEvent extends Model
         return collect(self::MODULES)->keys()->filter(fn ($m) => $this->hasModule($m))->values()->all();
     }
 
-    /** Las comidas solo se pueden reservar con el módulo activo y las reservas abiertas. */
-    public function acceptsReservations(): bool
-    {
-        return $this->is_published && $this->has_food && $this->reservations_open;
-    }
-
     // ------------------------------------------------------------------
     // Presentación
     // ------------------------------------------------------------------
@@ -248,39 +212,6 @@ class ChurchEvent extends Model
         }
 
         return $today->lte($this->endDate()) ? 'En curso' : 'Finalizado';
-    }
-
-    /** Nombre público de la venta de comidas. */
-    public function reservationsTitle(): string
-    {
-        return $this->reservations_title
-            ?: 'Actividad solidaria'.($this->city ? " de los hermanos de {$this->city}" : '');
-    }
-
-    /**
-     * Adelanto mínimo exigido para un total dado (0.00 si no hay mínimo configurado).
-     * El adelanto fijo, si existe, manda sobre el porcentaje; nunca supera el total.
-     */
-    public function minimumDeposit(string $total): string
-    {
-        if ($this->hasFixedDeposit()) {
-            return bccomp((string) $this->deposit_amount, $total, 2) > 0 ? bcadd($total, '0', 2) : (string) $this->deposit_amount;
-        }
-
-        if (! $this->deposit_min_percent) {
-            return '0.00';
-        }
-
-        // Redondeo hacia arriba al céntimo.
-        $raw = bcdiv(bcmul($total, (string) $this->deposit_min_percent, 4), '100', 4);
-        $cents = (int) ceil((float) bcmul($raw, '100', 4));
-
-        return number_format($cents / 100, 2, '.', '');
-    }
-
-    public function hasFixedDeposit(): bool
-    {
-        return $this->deposit_amount !== null && bccomp((string) $this->deposit_amount, '0', 2) > 0;
     }
 
     public function renderedBody(): HtmlString

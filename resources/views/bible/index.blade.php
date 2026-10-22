@@ -9,6 +9,10 @@
             </h1>
             <p class="mt-6 max-w-xl text-lg text-cream/80">{{ $versionName }} · Los 66 libros, capítulo por capítulo.</p>
 
+            <div class="mt-8 max-w-2xl">
+                @include('bible.partials.search-form')
+            </div>
+
             {{-- Tarjetas: leer y versículo del día --}}
             <div class="mt-12 grid gap-5 lg:grid-cols-2"
                  x-data="{ last: (() => { try { return (JSON.parse(localStorage.getItem('biblia-recientes')) ?? [])[0] ?? null; } catch { return null; } })() }">
@@ -68,22 +72,18 @@
                 </ul>
             </section>
 
-            <div class="max-w-2xl">
-                <h2 class="font-display text-2xl font-bold text-primary">Buscar en la Biblia</h2>
-                <div class="mt-4">@include('bible.partials.search-form')</div>
-            </div>
-
             {{-- Libros --}}
-            <div id="libros" class="mt-14 scroll-mt-28 space-y-12">
-                @foreach (['Antiguo Testamento' => $oldTestament, 'Nuevo Testamento' => $newTestament] as $label => $books)
+            <div id="libros" class="scroll-mt-28 space-y-12" x-data>
+                <p class="text-muted">Toca un libro para elegir el capítulo y el versículo.</p>
+                @foreach (['Antiguo Testamento' => $oldTestament, 'Nuevo Testamento' => $newTestament] as $label => $testamentBooks)
                     <section aria-labelledby="{{ Str::slug($label) }}">
                         <h2 id="{{ Str::slug($label) }}" class="inline-flex items-center gap-3 text-2xl font-bold text-primary">
                             <span class="h-0.5 w-8 bg-brand" aria-hidden="true"></span>{{ $label }}
                         </h2>
                         <ul class="mt-5 grid grid-cols-2 gap-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5">
-                            @foreach ($books as $book)
+                            @foreach ($testamentBooks as $book)
                                 <li>
-                                    <a href="{{ route('bible.chapter', $book['slug']) }}" class="flex min-h-12 items-center justify-between gap-2 rounded-control bg-white px-4 py-2 text-sm font-semibold text-ink shadow-sm ring-1 ring-black/5 transition hover:text-brand-strong hover:ring-brand">
+                                    <a href="{{ route('bible.chapter', $book['slug']) }}" x-on:click.prevent="$dispatch('biblia-libro', @js($book['slug']))" class="flex min-h-12 items-center justify-between gap-2 rounded-control bg-white px-4 py-2 text-sm font-semibold text-ink shadow-sm ring-1 ring-black/5 transition hover:text-brand-strong hover:ring-brand">
                                         {{ $book['name'] }} <span class="text-xs font-normal text-muted">{{ $book['chapters'] }}</span>
                                     </a>
                                 </li>
@@ -93,7 +93,42 @@
                 @endforeach
             </div>
 
+            {{-- Ventana: capítulos y versículos del libro elegido (hoja inferior en móvil) --}}
+            <dialog id="libro-dialogo" aria-labelledby="libro-dialogo-titulo"
+                    x-data="bibleBrowser({ books: @js($books), chapterUrl: @js(route('bible.chapter', ['__LIBRO__', 999])), countUrl: @js(route('bible.verse-count', ['__LIBRO__', 999])), open: @js($openBook) })"
+                    x-on:biblia-libro.window="openBook($event.detail)" x-on:click="if ($event.target === $el) $el.close()"
+                    class="m-0 mt-auto max-h-[88dvh] w-full max-w-none overflow-hidden rounded-t-card bg-white p-0 shadow-2xl backdrop:bg-primary-deep/70 backdrop:backdrop-blur-sm sm:m-auto sm:max-h-[85dvh] sm:max-w-3xl sm:rounded-card">
+                <div class="flex max-h-[88dvh] flex-col sm:max-h-[85dvh]">
+                    <div class="flex items-center justify-between gap-3 border-b border-line px-5 py-3">
+                        <h2 id="libro-dialogo-titulo" class="font-sans text-base font-bold text-primary">Elige dónde leer</h2>
+                        <button type="button" x-on:click="$el.closest('dialog').close()" class="inline-flex size-10 items-center justify-center rounded-full hover:bg-cream">
+                            <x-ui.icon name="close" class="size-5" /><span class="sr-only">Cerrar</span>
+                        </button>
+                    </div>
+                    <div class="overflow-y-auto px-5 pt-4 pb-6">
+                        @include('bible.partials.passage-steps')
+                    </div>
+                </div>
+            </dialog>
+
             <p class="mt-12 text-xs text-muted">Texto bíblico: {{ $versionName }} ({{ $versionShort }}){{ $publicDomain ? ', de dominio público,' : '' }} obtenido de esbiblia.net.</p>
         </div>
     </div>
+    @include('bible.partials.scripts')
+    <script>
+        // Portada: el libro elegido se abre en una ventana (capítulos → versículos).
+        function bibleBrowser({ books, chapterUrl, countUrl, open }) {
+            return {
+                ...passagePicker({ books, chapterUrl, countUrl }),
+                init() { if (open) this.$nextTick(() => this.openBook(open)); },
+                openBook(slug) {
+                    const book = books.find((b) => b.slug === slug);
+                    if (! book) return;
+                    this.chooseBook(book);
+                    this.chapterChoice = null;
+                    if (! this.$el.open) this.$el.showModal();
+                },
+            };
+        }
+    </script>
 </x-layouts.public>

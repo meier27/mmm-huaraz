@@ -42,6 +42,61 @@ class BibleApi
     }
 
     /**
+     * Lo que alguien escribe en el buscador: «Juan», «juan 3», «gen 1:1»,
+     * «1 Co 13:4-7». Con capítulo se admite el comienzo del nombre si es de un
+     * solo libro; sin capítulo, solo el nombre completo (para no confundir una
+     * palabra como «juez» con el libro Jueces). Null si no es un pasaje.
+     *
+     * @return array{book: array, chapter: ?int, verse: ?string}|null
+     */
+    public static function parseQuery(string $text): ?array
+    {
+        $query = static::normalize($text);
+
+        if (preg_match('/^(.+?)\s*(\d{1,3})(?:\s*[:.,]\s*(\d{1,3})(?:\s*-\s*(\d{1,3}))?)?$/', $query, $m)
+            && ($book = static::findBook($m[1], allowPrefix: true))) {
+            $chapter = (int) $m[2];
+
+            if ($chapter < 1 || $chapter > $book['chapters']) {
+                return null;
+            }
+
+            $verse = ($m[3] ?? '') !== '' ? $m[3].(($m[4] ?? '') !== '' ? '-'.$m[4] : '') : null;
+
+            return ['book' => $book, 'chapter' => $chapter, 'verse' => $verse];
+        }
+
+        $book = static::findBook($query);
+
+        return $book ? ['book' => $book, 'chapter' => null, 'verse' => null] : null;
+    }
+
+    /** Libro por su nombre (sin tildes ni mayúsculas) o, si se permite, por un comienzo único. */
+    public static function findBook(string $name, bool $allowPrefix = false): ?array
+    {
+        $name = static::normalize($name);
+
+        if ($name === '') {
+            return null;
+        }
+
+        $books = collect(static::books());
+
+        if ($exact = $books->first(fn (array $b) => static::normalize($b['name']) === $name)) {
+            return $exact;
+        }
+
+        $candidates = $allowPrefix ? $books->filter(fn (array $b) => str_starts_with(static::normalize($b['name']), $name)) : collect();
+
+        return $candidates->count() === 1 ? $candidates->first() : null;
+    }
+
+    private static function normalize(string $text): string
+    {
+        return trim((string) preg_replace('/\s+/', ' ', Str::lower(Str::ascii($text))));
+    }
+
+    /**
      * Convierte una cita escrita («Juan 3:16», «1 Juan 1:7», «Salmos 23») en
      * libro, capítulo y versículo, para enlazarla al lector. Null si no se reconoce.
      *

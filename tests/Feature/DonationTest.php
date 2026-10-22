@@ -162,13 +162,13 @@ class DonationTest extends TestCase
         Donation::create(['status' => DonationStatus::Verified]);
     }
 
-    public function test_only_admins_and_cashiers_can_review_donations(): void
+    public function test_only_admins_and_treasury_can_review_donations(): void
     {
         foreach ([Role::Admin, Role::Cashier] as $role) {
             $this->actingAs(User::factory()->role($role)->create())->get('/admin/aportes')->assertOk();
         }
 
-        foreach ([Role::Editor, Role::Delivery] as $role) {
+        foreach ([Role::Editor] as $role) {
             $this->actingAs(User::factory()->role($role)->create())->get('/admin/aportes')->assertForbidden();
             Livewire::actingAs(User::factory()->role($role)->create())->test(DonationIndex::class)->assertForbidden();
         }

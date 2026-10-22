@@ -15,7 +15,7 @@
         ['url' => route('about'), 'label' => 'Nosotros', 'icon' => 'users', 'active' => 'about'],
         ['url' => route('teachings.index'), 'label' => 'Enseñanzas', 'icon' => 'list', 'active' => 'teachings.*'],
         ['url' => route('bible.index'), 'label' => 'Biblia', 'icon' => 'book', 'active' => 'bible.*'],
-        ['url' => route('events.index'), 'label' => 'Eventos', 'icon' => 'calendar', 'active' => ['events.*', 'reservations.*']],
+        ['url' => route('events.index'), 'label' => 'Eventos', 'icon' => 'calendar', 'active' => 'events.*'],
         ['url' => route('bethel'), 'label' => 'Bethel TV', 'icon' => 'tv', 'active' => 'bethel'],
         ['url' => route('contact'), 'label' => 'Contacto', 'icon' => 'chat', 'active' => 'contact'],
     ];
@@ -40,10 +40,7 @@
             $featuredEvent ? collect([
                 'program' => ['events.program', 'Programa'],
                 'venues' => ['events.venue', 'Sede y cómo llegar'],
-                'food' => ['events.reservations', 'Actividad solidaria'],
                 'donations' => ['events.donations', 'Donaciones'],
-                'accommodations' => ['events.accommodations', 'Hospedaje'],
-                'tourism' => ['events.tourism', 'Turismo'],
             ])->filter(fn ($item, $module) => $featuredEvent->hasModule($module))
                 ->map(fn ($item) => ['url' => route($item[0], $featuredEvent), 'label' => $item[1]])->values()->all() : [],
         ),
@@ -65,10 +62,7 @@
         ['route' => 'events.show', 'label' => 'Resumen', 'module' => null],
         ['route' => 'events.program', 'label' => 'Programa', 'module' => 'program'],
         ['route' => 'events.venue', 'label' => 'Sede', 'module' => 'venues'],
-        ['route' => 'events.reservations', 'label' => 'Actividad solidaria', 'module' => 'food'],
         ['route' => 'events.donations', 'label' => 'Donaciones', 'module' => 'donations'],
-        ['route' => 'events.accommodations', 'label' => 'Hospedaje', 'module' => 'accommodations'],
-        ['route' => 'events.tourism', 'label' => 'Turismo', 'module' => 'tourism'],
     ])->filter(fn ($item) => $item['module'] === null || $event->hasModule($item['module'])) : collect();
 @endphp
 

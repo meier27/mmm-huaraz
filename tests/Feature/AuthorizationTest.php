@@ -33,7 +33,7 @@ class AuthorizationTest extends TestCase
     {
         $this->assertTrue(Gate::forUser(User::factory()->admin()->create())->allows('manage-users'));
 
-        foreach ([Role::Editor, Role::Cashier, Role::Delivery] as $role) {
+        foreach ([Role::Editor, Role::Cashier] as $role) {
             $this->assertFalse(Gate::forUser(User::factory()->role($role)->create())->allows('manage-users'), $role->value);
         }
     }
@@ -43,7 +43,6 @@ class AuthorizationTest extends TestCase
         $this->assertTrue(Gate::forUser(User::factory()->admin()->create())->allows('manage-content'));
         $this->assertTrue(Gate::forUser(User::factory()->role(Role::Editor)->create())->allows('manage-content'));
         $this->assertFalse(Gate::forUser(User::factory()->role(Role::Cashier)->create())->allows('manage-content'));
-        $this->assertFalse(Gate::forUser(User::factory()->role(Role::Delivery)->create())->allows('manage-content'));
     }
 
     public function test_inactive_admin_loses_all_permissions(): void

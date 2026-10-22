@@ -88,17 +88,8 @@
         @case('clock')
             <circle cx="12" cy="12" r="8.5" /><path d="M12 7.5V12l3 2" />
             @break
-        @case('utensils')
-            <path d="M7 3v7a2 2 0 0 0 2 2v9M11 3v7a2 2 0 0 1-2 2M9 3v6M17 21V3c-2 1.5-3 4-3 7v3h3" />
-            @break
         @case('heart')
             <path d="M12 20s-7.5-4.6-7.5-10A4.5 4.5 0 0 1 12 7a4.5 4.5 0 0 1 7.5 3c0 5.4-7.5 10-7.5 10z" />
-            @break
-        @case('bed')
-            <path d="M3 18V7M3 14h18v4M21 14v-2a3 3 0 0 0-3-3h-7v5M7 11.5a1.5 1.5 0 1 0 0-.01" />
-            @break
-        @case('mountain')
-            <path d="M2.5 20 9 9l4 6.5L15.5 12l6 8z" /><path d="m7.6 11.4 1.4 1.1 1.3-1.1" />
             @break
         @case('chat')
             <path d="M4 5.5h16v10H9l-5 4z" /><path d="M8 10h8" />

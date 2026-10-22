@@ -80,7 +80,7 @@ class AdminAuthenticationTest extends TestCase
         $this->actingAs($user)->get('/admin')
             ->assertOk()
             ->assertSee('Ana Prueba')
-            ->assertSee('Caja');
+            ->assertSee('Tesorería');
     }
 
     public function test_user_can_log_out(): void

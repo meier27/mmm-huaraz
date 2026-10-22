@@ -6,34 +6,27 @@ use App\Enums\DonationMethodType;
 use App\Enums\Role;
 use App\Enums\VenueKind;
 use App\Livewire\Admin\ChurchEventManager;
-use App\Livewire\Admin\DishOfferingManager;
 use App\Livewire\Admin\EventEditor;
 use App\Livewire\Admin\ProgramDayManager;
 use App\Livewire\Admin\ProgramItemManager;
-use App\Livewire\Admin\ReservationIndex;
 use App\Livewire\Admin\VenueManager;
 use App\Livewire\DonationReportForm;
-use App\Livewire\ReservationForm;
 use App\Models\ChurchEvent;
 use App\Models\DonationMethod;
 use App\Models\ProgramDay;
 use App\Models\User;
 use App\Models\Venue;
-use App\Services\ReservationService;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
-use Illuminate\Validation\ValidationException;
-use Livewire\Features\SupportLockedProperties\CannotUpdateLockedPropertyException;
 use Livewire\Livewire;
-use Tests\Concerns\CreatesOfferings;
 use Tests\TestCase;
 
 class EventModulesTest extends TestCase
 {
-    use CreatesOfferings, RefreshDatabase;
+    use RefreshDatabase;
 
     private function event(string $title, array $attributes = []): ChurchEvent
     {
@@ -128,7 +121,7 @@ class EventModulesTest extends TestCase
 
         $this->get(route('events.show', $event))->assertOk()->assertDontSee('aria-label="Secciones del evento"', false);
 
-        foreach (['program', 'venue', 'reservations', 'donations', 'accommodations', 'tourism'] as $page) {
+        foreach (['program', 'venue', 'donations'] as $page) {
             $this->get(route("events.$page", $event))->assertNotFound();
         }
     }
@@ -142,11 +135,21 @@ class EventModulesTest extends TestCase
             ->assertSee('aria-label="Secciones del evento"', false)
             ->assertSee(route('events.program', $event), false)
             ->assertSee(route('events.donations', $event), false)
-            ->assertDontSee(route('events.reservations', $event), false)
-            ->assertDontSee(route('events.tourism', $event), false);
+            ->assertDontSee(route('events.venue', $event), false);
 
         $this->get(route('events.program', $event))->assertOk();
-        $this->get(route('events.tourism', $event))->assertNotFound();
+        $this->get(route('events.venue', $event))->assertNotFound();
+    }
+
+    public function test_retired_sections_redirect_to_the_event_page(): void
+    {
+        $event = $this->event('Convención', ['has_program' => true]);
+
+        foreach (['reservas', 'hospedaje', 'turismo'] as $retired) {
+            $this->get("/eventos/{$event->slug}/{$retired}")->assertRedirect(route('events.show', $event))->assertStatus(301);
+        }
+
+        $this->get('/eventos/borrador/reservas')->assertNotFound();
     }
 
     public function test_unpublished_events_and_their_modules_are_hidden(): void
@@ -168,72 +171,6 @@ class EventModulesTest extends TestCase
     }
 
     // ------------------------------------------------------------------
-    // Reservas: una reserva pertenece a un único evento
-    // ------------------------------------------------------------------
-
-    public function test_reservation_form_only_offers_dishes_of_its_event(): void
-    {
-        $a = $this->event('Evento A', ['has_food' => true, 'reservations_open' => true]);
-        $b = $this->event('Evento B', ['has_food' => true, 'reservations_open' => true]);
-        $this->offering([], ['name' => 'Plato de A'], $a);
-        $this->offering([], ['name' => 'Plato de B'], $b);
-
-        $this->get(route('events.reservations', $a))->assertSee('Plato de A')->assertDontSee('Plato de B');
-    }
-
-    public function test_a_reservation_cannot_mix_or_smuggle_dishes_from_another_event(): void
-    {
-        $a = $this->event('Evento A', ['has_food' => true, 'reservations_open' => true]);
-        $b = $this->event('Evento B', ['has_food' => true, 'reservations_open' => true]);
-        $fromA = $this->offering([], ['name' => 'Plato de A'], $a);
-        $fromB = $this->offering([], ['name' => 'Plato de B'], $b);
-        $service = app(ReservationService::class);
-
-        try {
-            $service->create([$fromA->id => 1, $fromB->id => 1], 'Ana', '900000001', null, (string) Str::uuid());
-            $this->fail('Se esperaba ValidationException al mezclar eventos.');
-        } catch (ValidationException) {
-        }
-
-        // Desde la página del evento A no se puede reservar un plato de B.
-        Storage::fake('local');
-        Livewire::test(ReservationForm::class, ['event' => $a])
-            ->set("quantities.{$fromB->id}", 1)
-            ->set('customer_name', 'Ana Prueba')
-            ->set('customer_phone', '900000001')
-            ->set('deposit_proof', UploadedFile::fake()->image('adelanto.jpg', 600, 900))
-            ->call('submit')
-            ->assertHasErrors('quantities');
-
-        $reservation = $service->create([$fromA->id => 1], 'Ana', '900000001', null, (string) Str::uuid(), $a);
-        $this->assertSame($a->id, $reservation->church_event_id);
-        $this->assertSame(0, $fromB->fresh()->reserved);
-    }
-
-    public function test_reservations_are_closed_per_event(): void
-    {
-        $open = $this->event('Abierto', ['has_food' => true, 'reservations_open' => true]);
-        $closed = $this->event('Cerrado', ['has_food' => true, 'reservations_open' => false]);
-        $offering = $this->offering([], [], $closed);
-
-        $this->get(route('events.reservations', $open))->assertDontSee('Las reservas aún no están abiertas');
-        $this->get(route('events.reservations', $closed))->assertSee('Las reservas aún no están abiertas');
-
-        Livewire::test(ReservationForm::class, ['event' => $closed])
-            ->set("quantities.{$offering->id}", 1)->set('customer_name', 'Ana Prueba')->set('customer_phone', '900000001')
-            ->call('submit')
-            ->assertHasErrors('quantities');
-    }
-
-    public function test_the_event_of_the_reservation_form_cannot_be_changed_from_the_browser(): void
-    {
-        $a = $this->event('Evento A', ['has_food' => true]);
-
-        $this->expectException(CannotUpdateLockedPropertyException::class);
-        Livewire::test(ReservationForm::class, ['event' => $a])->set('event', $this->event('Evento B', ['has_food' => true])->id);
-    }
-
-    // ------------------------------------------------------------------
     // Panel: cada gestor trabaja dentro de su evento
     // ------------------------------------------------------------------
 
@@ -243,7 +180,7 @@ class EventModulesTest extends TestCase
 
         $this->actingAs($this->editor())->get(route('admin.events.edit', $event))->assertOk();
         $this->actingAs($this->editor())->get(route('admin.events.program', $event))->assertNotFound();
-        $this->actingAs($this->editor())->get(route('admin.events.dishes', $event))->assertNotFound();
+        $this->actingAs($this->editor())->get(route('admin.events.venues', $event))->assertNotFound();
     }
 
     public function test_venue_takes_coordinates_from_a_pasted_google_maps_link_and_stores_a_photo(): void
@@ -286,21 +223,15 @@ class EventModulesTest extends TestCase
         Livewire::actingAs($this->editor())->test(VenueManager::class, ['event' => $a])->call('delete', $venueOfB->id);
     }
 
-    public function test_program_and_offering_forms_reject_days_and_dishes_of_another_event(): void
+    public function test_program_form_rejects_days_of_another_event(): void
     {
-        $a = $this->event('Evento A', ['has_program' => true, 'has_food' => true]);
-        $b = $this->event('Evento B', ['has_program' => true, 'has_food' => true]);
+        $a = $this->event('Evento A', ['has_program' => true]);
+        $b = $this->event('Evento B', ['has_program' => true]);
         $dayOfB = ProgramDay::query()->forceCreate(['church_event_id' => $b->id, 'date' => today()->addDay()->toDateString()]);
-        $dishOfB = $this->offering([], [], $b)->dish;
 
         Livewire::actingAs($this->editor())->test(ProgramItemManager::class, ['event' => $a])
             ->call('create')->set('form.program_day_id', $dayOfB->id)->set('form.starts_at', '19:00')->set('form.title', 'Culto')
             ->call('save')->assertHasErrors('form.program_day_id');
-
-        Livewire::actingAs($this->editor())->test(DishOfferingManager::class, ['event' => $a])
-            ->call('create')->set('form.dish_id', $dishOfB->id)->set('form.serve_date', today()->addDay()->toDateString())
-            ->set('form.slot_start', '12:00')->set('form.price', '10')->set('form.stock', 10)
-            ->call('save')->assertHasErrors('form.dish_id');
     }
 
     public function test_two_events_can_have_program_on_the_same_day_but_not_twice_in_one_event(): void
@@ -324,17 +255,14 @@ class EventModulesTest extends TestCase
         $event = $this->event('Nuevo');
 
         Livewire::actingAs($this->editor())->test(EventEditor::class, ['event' => $event])
-            ->set('form.reservations_open', true)
-            ->call('save')
-            ->assertHasErrors('form.reservations_open') // sin el módulo de comidas
-            ->set('form.has_food', true)
-            ->set('form.has_tourism', true)
+            ->set('form.has_venues', true)
+            ->set('form.has_donations', true)
             ->set('form.is_featured', true)
             ->call('save')
             ->assertHasNoErrors();
 
         $event->refresh();
-        $this->assertTrue($event->has_food && $event->has_tourism && $event->reservations_open);
+        $this->assertTrue($event->has_venues && $event->has_donations);
         $this->assertTrue($event->is_featured);
         $this->assertFalse($old->fresh()->is_featured);
         $this->assertSame($event->id, ChurchEvent::featured()->id);
@@ -342,8 +270,8 @@ class EventModulesTest extends TestCase
 
     public function test_event_with_content_cannot_be_deleted(): void
     {
-        $event = $this->event('Con platos', ['has_food' => true]);
-        $this->offering([], [], $event);
+        $event = $this->event('Con programa', ['has_program' => true]);
+        ProgramDay::query()->forceCreate(['church_event_id' => $event->id, 'date' => today()->addDay()->toDateString()]);
         $empty = $this->event('Vacío');
 
         Livewire::actingAs($this->editor())->test(ChurchEventManager::class)
@@ -362,20 +290,6 @@ class EventModulesTest extends TestCase
             ->assertRedirect(route('admin.events.edit', ChurchEvent::sole()));
 
         $this->assertNotSame('convencion', ChurchEvent::sole()->slug);
-    }
-
-    public function test_reservations_and_donations_can_be_filtered_by_event(): void
-    {
-        $a = $this->event('Evento A', ['has_food' => true]);
-        $b = $this->event('Evento B', ['has_food' => true]);
-        $service = app(ReservationService::class);
-        $service->create([$this->offering([], [], $a)->id => 1], 'Cliente de A', '900000001', null, (string) Str::uuid());
-        $service->create([$this->offering([], [], $b)->id => 1], 'Cliente de B', '900000002', null, (string) Str::uuid());
-
-        Livewire::actingAs(User::factory()->role(Role::Cashier)->create())->test(ReservationIndex::class)
-            ->assertSee('Cliente de A')->assertSee('Cliente de B')
-            ->set('event', (string) $a->id)
-            ->assertSee('Cliente de A')->assertDontSee('Cliente de B');
     }
 
     public function test_donations_reported_from_an_event_page_are_linked_to_it(): void

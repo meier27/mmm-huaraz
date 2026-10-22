@@ -8,7 +8,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 /**
- * Contenido de un módulo de evento (programa, sedes, platos, hospedaje...).
+ * Contenido de un módulo de evento (programa, sedes, aportes...).
  * church_event_id no es asignable en masa: lo fija el servidor.
  *
  * @mixin Model

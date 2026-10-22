@@ -2,17 +2,12 @@
 
 use App\Http\Controllers\Admin\DashboardController;
 use App\Http\Controllers\Admin\DonationReceiptController;
-use App\Http\Controllers\Admin\ReservationController as AdminReservationController;
-use App\Http\Controllers\Admin\ReservationProofController;
 use App\Http\Controllers\Auth\LoginController;
 use App\Http\Controllers\BibleController;
 use App\Http\Controllers\EventController;
-use App\Http\Controllers\ReservationController;
 use App\Http\Controllers\SiteController;
 use App\Http\Controllers\TeachingController;
 use App\Livewire\Admin;
-use App\Livewire\ReservationChangeForm;
-use App\Livewire\ReservationForm;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -37,11 +32,12 @@ Route::controller(BibleController::class)->prefix('biblia')->name('bible.')->gro
     Route::get('/', 'index')->name('index');
     Route::get('buscar', 'search')->name('search');
     Route::get('{book}/{chapter?}', 'chapter')->whereNumber('chapter')->name('chapter');
+    Route::get('{book}/{chapter}/versiculos', 'verseCount')->whereNumber('chapter')->middleware('throttle:60,1')->name('verse-count');
 });
 
 /*
 |--------------------------------------------------------------------------
-| Eventos y sus módulos (programa, sede, reservas, donaciones...)
+| Eventos y sus módulos (programa, sede y donaciones)
 |--------------------------------------------------------------------------
 */
 
@@ -49,8 +45,8 @@ Route::get('eventos', [EventController::class, 'index'])->name('events.index');
 
 // URL antiguas de la convención: llevan al evento destacado. Van antes de
 // {event:slug}; "convencion" es un slug reservado (ChurchEvent::uniqueSlug).
-Route::get('eventos/convencion/{section?}', [EventController::class, 'legacy'])->whereIn('section', ['programa', 'sede', 'reservas', 'donaciones', 'hospedaje', 'turismo']);
-foreach (['programa', 'sede', 'reservas', 'donaciones', 'hospedaje', 'turismo'] as $old) {
+Route::get('eventos/convencion/{section?}', [EventController::class, 'legacy'])->whereIn('section', ['programa', 'sede', 'donaciones']);
+foreach (['programa', 'sede', 'donaciones'] as $old) {
     Route::get($old, [EventController::class, 'legacy'])->defaults('section', $old);
 }
 
@@ -58,21 +54,9 @@ Route::prefix('eventos/{event:slug}')->name('events.')->group(function () {
     Route::get('/', [EventController::class, 'show'])->name('show');
     Route::get('programa', [EventController::class, 'program'])->name('program');
     Route::get('sede', [EventController::class, 'venue'])->name('venue');
-    Route::get('reservas', ReservationForm::class)->name('reservations');
     Route::get('donaciones', [EventController::class, 'donations'])->name('donations');
-    Route::get('hospedaje', [EventController::class, 'accommodations'])->name('accommodations');
-    Route::get('turismo', [EventController::class, 'tourism'])->name('tourism');
-});
-
-/*
-|--------------------------------------------------------------------------
-| Reservas (enlaces de los clientes: no cambiar)
-|--------------------------------------------------------------------------
-*/
-
-Route::middleware('throttle:reservation-lookup')->group(function () {
-    Route::get('reserva/{token}', [ReservationController::class, 'show'])->name('reservations.show');
-    Route::get('reserva/{token}/cambiar', ReservationChangeForm::class)->name('reservations.change');
+    // Secciones retiradas (comidas, hospedaje, turismo): los enlaces ya compartidos llevan al evento.
+    Route::get('{retired}', [EventController::class, 'retired'])->whereIn('retired', ['reservas', 'hospedaje', 'turismo']);
 });
 
 /*
@@ -113,23 +97,7 @@ Route::middleware(['auth', 'can:access-admin'])->prefix('admin')->name('admin.')
             Route::get('programa', Admin\ProgramItemManager::class)->name('program');
             Route::get('programa/dias', Admin\ProgramDayManager::class)->name('program-days');
             Route::get('sedes', Admin\VenueManager::class)->name('venues');
-            Route::get('platos', Admin\DishManager::class)->name('dishes');
-            Route::get('platos/ofertas', Admin\DishOfferingManager::class)->name('offerings');
-            Route::get('hospedaje', Admin\AccommodationManager::class)->name('accommodations');
-            Route::get('turismo', Admin\TouristPlaceManager::class)->name('tourism');
         });
-    });
-
-    Route::middleware('can:manage-reservations')->group(function () {
-        Route::get('reservas', Admin\ReservationIndex::class)->name('reservations');
-        // Antes de reservas/{reservation}: "verificar" no es un id.
-        Route::get('reservas/verificar', Admin\ReservationVerifier::class)->name('reservations.verify');
-        Route::get('reservas/{reservation}/captura', ReservationProofController::class)
-            ->middleware('can:registerPayment,reservation')
-            ->name('reservations.proof');
-        Route::get('reservas/{reservation}', [AdminReservationController::class, 'show'])
-            ->middleware('can:view,reservation')
-            ->name('reservations.show');
     });
 
     Route::middleware('can:manage-donations')->group(function () {

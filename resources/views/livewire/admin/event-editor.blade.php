@@ -55,9 +55,9 @@
         <fieldset class="rounded-card border border-line p-4 sm:col-span-2">
             <legend class="px-1 font-display font-bold text-primary">Módulos del evento</legend>
             <p class="text-sm text-muted">Activa solo lo que este evento necesita. Cada módulo añade una pestaña aquí y una sección en la web.</p>
-            <div class="mt-3 grid gap-x-6 sm:grid-cols-2 lg:grid-cols-3">
+            <div class="mt-3 grid gap-x-6 sm:grid-cols-3">
                 @foreach ($modules as $key => $module)
-                    <x-admin.checkbox :label="$module['label']" :model="'form.'.$module['column']" :live="in_array($key, ['food', 'donations'], true)" />
+                    <x-admin.checkbox :label="$module['label']" :model="'form.'.$module['column']" :live="$key === 'donations'" />
                 @endforeach
             </div>
             <p class="mt-2 text-xs text-muted">Los métodos de donación son generales de la iglesia: se gestionan en «Métodos de donación».</p>
@@ -69,26 +69,5 @@
             @endif
         </fieldset>
 
-        {{-- Comidas con reserva --}}
-        @if ($form->has_food)
-            <fieldset class="rounded-card border border-line p-4 sm:col-span-2">
-                <legend class="px-1 font-display font-bold text-primary">Actividad de comidas</legend>
-                <div class="grid gap-4 sm:grid-cols-2">
-                    <div class="sm:col-span-2">
-                        <x-admin.checkbox label="Reservas abiertas al público" model="form.reservations_open" />
-                        <p class="text-xs text-muted">Ábrelas solo cuando el menú, los precios y la forma de pago estén confirmados.</p>
-                    </div>
-                    <x-admin.input label="Nombre público de la actividad" model="form.reservations_title" class="sm:col-span-2"
-                                   hint="Vacío = «Actividad solidaria de los hermanos de (ciudad)»." />
-                    <x-admin.input label="Adelanto fijo por reserva (S/)" model="form.deposit_amount" type="number" step="0.01" min="0.10" inputmode="decimal"
-                                   hint="El cliente lo paga y adjunta la captura al reservar. Si se indica, reemplaza al porcentaje." />
-                    <x-admin.input label="Adelanto mínimo (%)" model="form.deposit_min_percent" type="number" min="1" max="100" inputmode="numeric"
-                                   hint="Solo si no hay adelanto fijo. Vacío = cualquier adelanto mayor que cero." />
-                    <p class="text-xs text-muted sm:col-span-2">Cambios y cancelaciones: hasta {{ config('reservations.change_deadline_hours') }} h antes del horario. Lo no recogido pasa a donación.</p>
-                    <x-admin.textarea label="Instrucciones de pago y recojo" model="form.reservation_instructions" rows="3" class="sm:col-span-2"
-                                      hint="Se muestran al reservar, junto a los métodos de pago publicados, y en la página de la reserva." />
-                </div>
-            </fieldset>
-        @endif
     </x-admin.form-panel>
 </div>

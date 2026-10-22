@@ -37,19 +37,21 @@ No declarar pruebas exitosas sin ejecutarlas.
 Funcionalidades
 Inicio y programa del evento.
 Mapas y ubicaciones.
-Catálogo y reservas de platos.
-Códigos QR de reservas.
+Enseñanzas, Biblia, lemas y medios (Bethel TV).
 Donaciones y verificación manual.
-Hospedaje y turismo.
-Panel administrativo.
+Panel administrativo (incluida la apariencia: colores y fuentes).
 Auditoría, seguridad y pruebas.
+
+Contenido exclusivamente cristiano: no incluir reservas, venta de comidas o
+platos, hospedaje, turismo ni nada comercial. Se retiraron el 2026-10-19 por
+decisión de la organización (el código quedó en el historial de git).
 Forma de trabajo
 
 Antes de modificar código, inspecciona el repositorio y presenta un plan breve.
 
 Implementa por fases, conserva las funcionalidades existentes y revisa los cambios antes de aceptarlos.
 
-Prioriza primero la web pública y la información esencial; después las reservas, los QR y el resto de módulos.
+Prioriza primero la web pública y la información esencial; después el resto de módulos.
 
 Consulta los skills especializados cuando correspondan a la tarea.
 

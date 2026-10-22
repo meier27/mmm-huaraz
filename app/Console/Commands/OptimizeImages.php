@@ -4,12 +4,10 @@ namespace App\Console\Commands;
 
 use App\Models\Banner;
 use App\Models\ChurchEvent;
-use App\Models\Dish;
 use App\Models\DonationMethod;
 use App\Models\GalleryPhoto;
 use App\Models\Leader;
 use App\Models\Teaching;
-use App\Models\TouristPlace;
 use Illuminate\Console\Command;
 
 /**
@@ -24,7 +22,7 @@ class OptimizeImages extends Command
 
     public function handle(): int
     {
-        $models = [Banner::class, GalleryPhoto::class, Teaching::class, ChurchEvent::class, Leader::class, Dish::class, TouristPlace::class, DonationMethod::class];
+        $models = [Banner::class, GalleryPhoto::class, Teaching::class, ChurchEvent::class, Leader::class, DonationMethod::class];
         $optimized = 0;
         $saved = 0;
 

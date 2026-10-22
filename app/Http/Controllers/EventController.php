@@ -4,7 +4,6 @@ namespace App\Http\Controllers;
 
 use App\Enums\VenueKind;
 use App\Models\ChurchEvent;
-use App\Models\DishOffering;
 use App\Models\DonationMethod;
 use App\Models\ProgramDay;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -12,9 +11,8 @@ use Illuminate\Http\RedirectResponse;
 use Illuminate\View\View;
 
 /**
- * Eventos y sus módulos (programa, sedes, donaciones, hospedaje, turismo; las
- * reservas son el componente ReservationForm). Solo contenido publicado, y
- * cada módulo solo si el evento lo tiene activo.
+ * Eventos y sus módulos (programa, sedes y donaciones). Solo contenido
+ * publicado, y cada módulo solo si el evento lo tiene activo.
  */
 class EventController extends Controller
 {
@@ -23,10 +21,7 @@ class EventController extends Controller
         '' => 'events.show',
         'programa' => 'events.program',
         'sede' => 'events.venue',
-        'reservas' => 'events.reservations',
         'donaciones' => 'events.donations',
-        'hospedaje' => 'events.accommodations',
-        'turismo' => 'events.tourism',
     ];
 
     public function index(): View
@@ -64,10 +59,6 @@ class EventController extends Controller
             'mainVenue' => $event->has_venues ? $event->venues()->published()->where('kind', VenueKind::Main)->ordered()->first() : null,
             'programDays' => $programDays,
             'nextDay' => $nextDay,
-            'featuredOfferings' => $event->acceptsReservations()
-                ? DishOffering::query()->forEvent($event)->bookable()->with('dish')->orderBy('serve_date')->orderBy('slot_start')->get()->unique('dish_id')->take(3)
-                : collect(),
-            'places' => $event->has_tourism ? $event->touristPlaces()->published()->ordered()->limit(3)->get() : collect(),
         ]);
     }
 
@@ -117,24 +108,12 @@ class EventController extends Controller
         ]);
     }
 
-    public function accommodations(ChurchEvent $event): View
+    /** Secciones retiradas (comidas, hospedaje, turismo): se redirige a la página del evento. */
+    public function retired(ChurchEvent $event): RedirectResponse
     {
-        $this->guard($event, 'accommodations');
+        $this->guard($event);
 
-        return view('events.modules.accommodations', [
-            'event' => $event,
-            'accommodations' => $event->accommodations()->published()->ordered()->paginate(9)->withQueryString(),
-        ]);
-    }
-
-    public function tourism(ChurchEvent $event): View
-    {
-        $this->guard($event, 'tourism');
-
-        return view('events.modules.tourism', [
-            'event' => $event,
-            'places' => $event->touristPlaces()->published()->ordered()->paginate(9)->withQueryString(),
-        ]);
+        return redirect()->route('events.show', $event, 301);
     }
 
     /** /eventos/convencion/... y /programa, /sede... (antes de los eventos con módulos). */

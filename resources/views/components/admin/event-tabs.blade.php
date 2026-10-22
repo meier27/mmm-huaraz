@@ -1,19 +1,14 @@
 @props(['event'])
 
 @php
-    // Pestañas de un evento: «Datos» y una por módulo activo. Reservas y
-    // aportes van a sus listados filtrados por el evento, si el rol los ve.
+    // Pestañas de un evento: «Datos» y una por módulo activo. Los aportes
+    // van a su listado filtrado por el evento, si el rol los ve.
     $tabs = collect([
         ['label' => 'Datos', 'icon' => 'settings', 'url' => route('admin.events.edit', $event), 'active' => 'admin.events.edit'],
         ['label' => 'Programa', 'icon' => 'list', 'url' => route('admin.events.program', $event), 'active' => 'admin.events.program', 'module' => 'program'],
         ['label' => 'Días', 'icon' => 'calendar', 'url' => route('admin.events.program-days', $event), 'active' => 'admin.events.program-days', 'module' => 'program'],
         ['label' => 'Sedes', 'icon' => 'map-pin', 'url' => route('admin.events.venues', $event), 'active' => 'admin.events.venues', 'module' => 'venues'],
-        ['label' => 'Platos', 'icon' => 'utensils', 'url' => route('admin.events.dishes', $event), 'active' => 'admin.events.dishes', 'module' => 'food'],
-        ['label' => 'Ofertas', 'icon' => 'clock', 'url' => route('admin.events.offerings', $event), 'active' => 'admin.events.offerings', 'module' => 'food'],
-        ['label' => 'Reservas', 'icon' => 'utensils', 'url' => route('admin.reservations', ['evento' => $event->id]), 'active' => null, 'module' => 'food', 'can' => 'manage-reservations'],
         ['label' => 'Aportes', 'icon' => 'coins', 'url' => route('admin.donations', ['evento' => $event->id, 'status' => 'all']), 'active' => null, 'module' => 'donations', 'can' => 'manage-donations'],
-        ['label' => 'Hospedaje', 'icon' => 'bed', 'url' => route('admin.events.accommodations', $event), 'active' => 'admin.events.accommodations', 'module' => 'accommodations'],
-        ['label' => 'Turismo', 'icon' => 'mountain', 'url' => route('admin.events.tourism', $event), 'active' => 'admin.events.tourism', 'module' => 'tourism'],
     ])->filter(fn ($tab) => (! isset($tab['module']) || $event->hasModule($tab['module'])) && (! isset($tab['can']) || Gate::allows($tab['can'])));
 @endphp
 

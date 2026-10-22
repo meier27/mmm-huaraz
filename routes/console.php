@@ -1,6 +1,4 @@
 <?php
 
-use Illuminate\Support\Facades\Schedule;
-
-// Requiere en el servidor: * * * * * php artisan schedule:run
-Schedule::command('reservations:process')->everyFifteenMinutes()->withoutOverlapping();
+// Tareas programadas (requieren en el servidor: * * * * * php artisan schedule:run).
+// Por ahora no hay ninguna.

@@ -1,5 +1,5 @@
 <div>
-    <x-admin.page-header title="Eventos" description="Convenciones, campañas, vigilias y demás actividades. Cada evento puede activar módulos: programa, sedes, comidas con reserva, donaciones, hospedaje y turismo.">
+    <x-admin.page-header title="Eventos" description="Convenciones, campañas, vigilias y demás actividades. Cada evento puede activar módulos: programa, sedes y donaciones.">
         <x-slot:actions>
             <x-ui.button wire:click="create">Nuevo evento</x-ui.button>
         </x-slot:actions>

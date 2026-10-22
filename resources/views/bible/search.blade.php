@@ -27,4 +27,5 @@
             @endif
         </div>
     </div>
+    @include('bible.partials.scripts')
 </x-layouts.public>

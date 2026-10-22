@@ -6,15 +6,16 @@ use App\Enums\Role;
 use App\Livewire\Admin\DonationMethodManager;
 use App\Livewire\Admin\EventEditor;
 use App\Livewire\Admin\FaqManager;
+use App\Livewire\Admin\LeaderManager;
 use App\Livewire\Admin\ProgramDayManager;
 use App\Livewire\Admin\ProgramItemManager;
-use App\Livewire\Admin\TouristPlaceManager;
 use App\Livewire\Admin\VenueManager;
 use App\Models\AuditLog;
 use App\Models\ChurchEvent;
+use App\Models\DonationMethod;
 use App\Models\Faq;
+use App\Models\Leader;
 use App\Models\ProgramDay;
-use App\Models\TouristPlace;
 use App\Models\User;
 use Database\Seeders\ConventionSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -40,8 +41,7 @@ class ContentManagementTest extends TestCase
         return [
             // {event}: la convención sembrada (evento con todos los módulos).
             ['/admin/eventos'], ['/admin/eventos/{event}'], ['/admin/eventos/{event}/programa'], ['/admin/eventos/{event}/programa/dias'],
-            ['/admin/eventos/{event}/sedes'], ['/admin/eventos/{event}/platos'], ['/admin/eventos/{event}/platos/ofertas'],
-            ['/admin/eventos/{event}/hospedaje'], ['/admin/eventos/{event}/turismo'], ['/admin/donaciones'], ['/admin/preguntas'],
+            ['/admin/eventos/{event}/sedes'], ['/admin/donaciones'], ['/admin/preguntas'], ['/admin/apariencia'],
         ];
     }
 
@@ -52,10 +52,9 @@ class ContentManagementTest extends TestCase
     }
 
     #[DataProvider('contentRoutes')]
-    public function test_cashier_and_delivery_cannot_open_content_screens(string $uri): void
+    public function test_treasury_cannot_open_content_screens(string $uri): void
     {
         $this->actingAs(User::factory()->role(Role::Cashier)->create())->get($this->uri($uri))->assertForbidden();
-        $this->actingAs(User::factory()->role(Role::Delivery)->create())->get($this->uri($uri))->assertForbidden();
     }
 
     private function convention(): ChurchEvent
@@ -249,22 +248,22 @@ class ContentManagementTest extends TestCase
             ->assertHasErrors(['form.ends_on']);
     }
 
-    public function test_tourist_place_image_is_stored_with_random_name_and_replaced(): void
+    public function test_uploaded_image_is_stored_with_random_name_and_replaced(): void
     {
         Storage::fake('public');
         $editor = User::factory()->role(Role::Editor)->create();
 
-        $component = Livewire::actingAs($editor)->test(TouristPlaceManager::class, ['event' => $this->convention()])
+        $component = Livewire::actingAs($editor)->test(LeaderManager::class)
             ->call('create')
-            ->set('form.name', 'Laguna de prueba')
+            ->set('form.name', 'Pastor de prueba')
+            ->set('form.role', 'Pastor')
             ->set('form.image', UploadedFile::fake()->image('foto.jpg', 800, 600))
-            ->set('form.image_alt', 'Vista de la laguna')
             ->call('save')
             ->assertHasNoErrors();
 
-        $place = TouristPlace::sole();
-        $first = $place->image_path;
-        $this->assertStringStartsWith('tourist_places/', $first);
+        $place = Leader::sole();
+        $first = $place->photo_path;
+        $this->assertStringStartsWith('leaders/', $first);
         $this->assertStringNotContainsString('foto', $first);
         Storage::disk('public')->assertExists($first);
 
@@ -273,10 +272,10 @@ class ContentManagementTest extends TestCase
             ->call('save');
 
         Storage::disk('public')->assertMissing($first);
-        Storage::disk('public')->assertExists($place->fresh()->image_path);
+        Storage::disk('public')->assertExists($place->fresh()->photo_path);
 
         $component->call('delete', $place->id);
-        Storage::disk('public')->assertMissing($place->image_path);
+        Storage::disk('public')->assertMissing($place->fresh()?->photo_path ?? $first);
     }
 
     public function test_donation_method_form_shows_and_keeps_only_the_fields_of_its_type(): void
@@ -299,7 +298,7 @@ class ContentManagementTest extends TestCase
             ->call('save')
             ->assertHasNoErrors();
 
-        $yape = \App\Models\DonationMethod::sole();
+        $yape = DonationMethod::sole();
         $this->assertSame(['Yape', 'Iglesia de prueba', '999 999 999', null], [$yape->label, $yape->holder_name, $yape->phone, $yape->account_number]);
         $this->assertNotNull($yape->qr_image_path);
 
@@ -333,9 +332,9 @@ class ContentManagementTest extends TestCase
             ->assertHasErrors('form.qr_image')
             ->assertSet('form.qr_image', null);
 
-        Livewire::actingAs($editor)->test(TouristPlaceManager::class, ['event' => $this->convention()])
+        Livewire::actingAs($editor)->test(LeaderManager::class)
             ->call('create')
-            ->set('form.name', 'Lugar')
+            ->set('form.name', 'Pastor')
             ->set('form.image', UploadedFile::fake()->create('doc.pdf', 10, 'application/pdf'))
             ->assertHasErrors('form.image')
             ->assertSet('form.image', null);
@@ -348,14 +347,14 @@ class ContentManagementTest extends TestCase
         Storage::fake('public');
 
         Livewire::actingAs(User::factory()->role(Role::Editor)->create())
-            ->test(TouristPlaceManager::class, ['event' => $this->convention()])
+            ->test(LeaderManager::class)
             ->call('create')
-            ->set('form.name', 'Lugar')
-            ->set('form.image_alt', 'Texto')
+            ->set('form.name', 'Pastor')
+            ->set('form.role', 'Pastor')
             ->set('form.image', UploadedFile::fake()->image('grande.jpg', 800, 600)->size(3000))
             ->call('save')
             ->assertHasErrors('form.image');
 
-        $this->assertSame(0, TouristPlace::count());
+        $this->assertSame(0, Leader::count());
     }
 }

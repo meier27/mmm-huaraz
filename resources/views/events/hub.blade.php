@@ -13,7 +13,7 @@
             : null;
         // Fechas y lugar no van sobre la imagen: ya están en la barra de datos de abajo.
         $hasHeroText = $event->hero_show_title || $event->hero_text;
-        $moduleButtons = $event->hero_show_buttons && ($event->has_program || $event->has_food || $event->has_venues);
+        $moduleButtons = $event->hero_show_buttons && ($event->has_program || $event->has_venues);
     @endphp
     <section @class(['relative isolate overflow-hidden text-white', 'bg-primary-deep' => $heroImage, 'bg-linear-to-br from-primary via-primary-soft to-primary-deep' => ! $heroImage])>
         @if ($heroImage)
@@ -61,10 +61,6 @@
                             <a href="{{ route('events.program', $event) }}" @class(['inline-flex min-h-12 items-center gap-2 rounded-control px-6 py-3 font-bold transition',
                                     'bg-brand text-primary-deep shadow-lg hover:bg-white' => ! $heroButton, 'border border-white/50 text-white hover:bg-white/10' => $heroButton])>
                                 Ver programa <x-ui.icon name="arrow-right" class="size-5" />
-                            </a>
-                        @elseif ($event->has_food)
-                            <a href="{{ route('events.reservations', $event) }}" class="inline-flex min-h-12 items-center gap-2 rounded-control border border-white/50 px-6 py-3 font-bold text-white transition hover:bg-white/10">
-                                {{ $event->reservationsTitle() }} <x-ui.icon name="arrow-right" class="size-5" />
                             </a>
                         @endif
                         @if ($event->has_venues)
@@ -195,43 +191,6 @@
     </section>
     @endif
 
-    {{-- ===== Actividad solidaria (venta de comidas) ===== --}}
-    @if ($featuredOfferings->isNotEmpty())
-        <section class="py-16 sm:py-20" aria-labelledby="reservas-titulo">
-            <div class="container-content">
-                <div class="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
-                    <div>
-                        <p class="text-sm font-semibold tracking-[0.2em] text-brand-strong uppercase">Apoya la obra</p>
-                        <h2 id="reservas-titulo" class="mt-2 text-3xl font-extrabold sm:text-4xl">{{ $event->reservationsTitle() }}</h2>
-                        <p class="mt-2 max-w-xl text-muted">Platos preparados por los hermanos{{ $event->city ? ' de '.$event->city : '' }}. Reserva con anticipación y recoge tu pedido con tu código de reserva: lo recaudado apoya la obra.</p>
-                    </div>
-                    <x-ui.button href="{{ route('events.reservations', $event) }}">Reservar mi plato <x-ui.icon name="arrow-right" class="size-5" /></x-ui.button>
-                </div>
-
-                <ul class="mt-8 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-                    @foreach ($featuredOfferings as $offering)
-                        <li class="group overflow-hidden rounded-card bg-white shadow-card transition hover:-translate-y-1 hover:shadow-xl">
-                            <a href="{{ route('events.reservations', $event) }}" class="block">
-                                @if ($offering->dish->imageUrl())
-                                    <img src="{{ $offering->dish->imageUrl() }}" alt="{{ $offering->dish->image_alt ?? '' }}" width="640" height="400" class="aspect-16/10 w-full object-cover" loading="lazy" decoding="async">
-                                @else
-                                    <div class="flex aspect-16/10 items-center justify-center bg-linear-to-br from-brand/20 to-cream text-brand-strong"><x-ui.icon name="utensils" class="size-12" /></div>
-                                @endif
-                                <div class="flex items-start justify-between gap-3 p-5">
-                                    <div>
-                                        <h3 class="font-sans text-lg font-bold text-ink group-hover:text-brand-strong">{{ $offering->dish->name }}</h3>
-                                        <p class="text-sm text-muted">{{ $offering->dateLabel() }}</p>
-                                    </div>
-                                    <p class="shrink-0 font-display text-xl font-extrabold text-brand-strong">S/ {{ number_format((float) $offering->price, 2) }}</p>
-                                </div>
-                            </a>
-                        </li>
-                    @endforeach
-                </ul>
-            </div>
-        </section>
-    @endif
-
     {{-- ===== Accesos rápidos ===== --}}
     <section class="py-16 sm:py-20" aria-labelledby="accesos">
         <div class="container-content">
@@ -240,10 +199,7 @@
                 // Solo los módulos activos del evento.
                 $shortcuts = collect([
                     ['module' => 'venues', 'url' => route('events.venue', $event), 'icon' => 'map-pin', 'title' => 'Sede y cómo llegar', 'text' => 'Ubicación, mapa e indicaciones.'],
-                    ['module' => 'food', 'url' => route('events.reservations', $event), 'icon' => 'utensils', 'title' => 'Actividad solidaria', 'text' => 'Reserva platos preparados por los hermanos.'],
                     ['module' => 'donations', 'url' => route('events.donations', $event), 'icon' => 'heart', 'title' => 'Donaciones', 'text' => 'Métodos oficiales para tu aporte.'],
-                    ['module' => 'accommodations', 'url' => route('events.accommodations', $event), 'icon' => 'bed', 'title' => 'Hospedaje', 'text' => 'Opciones de alojamiento en la ciudad.'],
-                    ['module' => 'tourism', 'url' => route('events.tourism', $event), 'icon' => 'mountain', 'title' => $event->city ? 'Descubre '.$event->city : 'Turismo', 'text' => 'Lugares para conocer durante tu visita.'],
                     ['module' => null, 'url' => route('contact'), 'icon' => 'chat', 'title' => 'Contacto', 'text' => 'Teléfonos, WhatsApp y preguntas frecuentes.'],
                 ])->filter(fn ($s) => $s['module'] === null || $event->hasModule($s['module']));
             @endphp
@@ -279,33 +235,5 @@
             </a>
         </div>
     </section>
-    @endif
-
-    {{-- ===== Turismo ===== --}}
-    @if ($places->isNotEmpty())
-        <section class="container-content py-16 sm:py-20" aria-labelledby="turismo-titulo">
-            <div class="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
-                <div>
-                    <p class="text-sm font-semibold tracking-[0.2em] text-brand-strong uppercase">Turismo</p>
-                    <h2 id="turismo-titulo" class="mt-2 text-3xl font-extrabold sm:text-4xl">{{ $event->city ? 'Descubre '.$event->city : 'Turismo' }}</h2>
-                </div>
-                <a href="{{ route('events.tourism', $event) }}" class="font-semibold text-brand-strong underline-offset-4 hover:underline">Ver todos los lugares</a>
-            </div>
-            <ul class="mt-8 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-                @foreach ($places as $place)
-                    <li class="group relative overflow-hidden rounded-card bg-primary">
-                        @if ($place->imageUrl())
-                            <img src="{{ $place->imageUrl() }}" alt="{{ $place->image_alt ?? '' }}" width="800" height="600" class="aspect-4/3 w-full object-cover transition duration-500 group-hover:scale-105" loading="lazy" decoding="async">
-                        @else
-                            <div class="aspect-4/3 bg-linear-to-br from-primary to-primary-deep"></div>
-                        @endif
-                        <div class="absolute inset-0 flex flex-col justify-end bg-linear-to-t from-black/75 via-black/20 to-transparent p-5 text-white">
-                            <h3 class="font-display text-xl font-bold text-white">{{ $place->name }}</h3>
-                            @if ($place->distance_note)<p class="text-sm text-cream/90">{{ $place->distance_note }}</p>@endif
-                        </div>
-                    </li>
-                @endforeach
-            </ul>
-        </section>
     @endif
 </x-layouts.public>

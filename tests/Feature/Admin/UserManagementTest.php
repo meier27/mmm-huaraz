@@ -119,12 +119,27 @@ class UserManagementTest extends TestCase
             ->call('create')
             ->set('form.name', 'Auditada')
             ->set('form.email', 'auditada@example.test')
-            ->set('form.role', 'delivery')
+            ->set('form.role', 'editor')
             ->set('form.password', 'clave-segura-1')
             ->call('save');
 
         $log = AuditLog::where('action', 'created')->latest('id')->first();
         $this->assertSame('[oculto]', $log->new_values['password']);
-        $this->assertSame('delivery', $log->new_values['role']);
+        $this->assertSame('editor', $log->new_values['role']);
+    }
+
+    public function test_retired_delivery_role_can_no_longer_be_assigned(): void
+    {
+        Livewire::actingAs(User::factory()->admin()->create())
+            ->test(UserManager::class)
+            ->call('create')
+            ->set('form.name', 'Entrega')
+            ->set('form.email', 'entrega@example.test')
+            ->set('form.role', 'delivery')
+            ->set('form.password', 'clave-segura-1')
+            ->call('save')
+            ->assertHasErrors('form.role');
+
+        $this->assertFalse(User::where('email', 'entrega@example.test')->exists());
     }
 }

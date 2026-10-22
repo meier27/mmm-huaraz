@@ -30,9 +30,8 @@ class DashboardTest extends TestCase
             ->assertOk()
             ->assertSee('aria-label="Menú del panel"', false)
             ->assertSeeInOrder(['General', 'Sitio web', 'Convención', 'Administración'])
-            ->assertSee('Reservas activas')
-            ->assertSee('Porciones reservadas por día')
             ->assertSee('Aportes por verificar')
+            ->assertDontSee('Reservas')
             ->assertSee('1<span class="sr-only"> pendientes</span>', false)
             ->assertSee('Contenido publicado');
     }
@@ -43,19 +42,17 @@ class DashboardTest extends TestCase
             ->assertOk()
             ->assertSee('Contenido publicado')
             ->assertSee('Publicado en la web')
-            ->assertDontSee('Cobrado en reservas')
             ->assertDontSee('Aportes por verificar')
             ->assertDontSee(route('admin.users'))
             ->assertDontSee(route('admin.donations'));
     }
 
-    public function test_cashier_sees_reservations_and_donations_but_not_content_management(): void
+    public function test_treasury_sees_donations_but_not_content_management(): void
     {
         $this->actingAs(User::factory()->role(Role::Cashier)->create())->get('/admin')
             ->assertOk()
-            ->assertSee('Cobrado en reservas')
-            ->assertSee('Saldo por cobrar')
             ->assertSee('Aportes por verificar')
+            ->assertSee('Aportes verificados')
             ->assertDontSee('Contenido publicado')
             ->assertDontSee(route('admin.banners'));
     }

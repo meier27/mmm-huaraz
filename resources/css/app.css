@@ -180,3 +180,26 @@
     & strong { @apply font-semibold text-ink; }
     & hr { @apply border-line; }
 }
+
+/*
+ * Biblia: versículo enlazado (?v=16 o ?v=16-18). Sombreado del color de acento
+ * (editable en Panel › Apariencia) y un destello breve al llegar.
+ */
+@layer components {
+    .verse-focus {
+        background-color: color-mix(in srgb, var(--color-accent-light) 28%, transparent);
+        box-shadow: 0 0 0 0.2em color-mix(in srgb, var(--color-accent-light) 28%, transparent);
+        border-radius: 0.2em;
+        box-decoration-break: clone;
+        -webkit-box-decoration-break: clone;
+        animation: verse-flash 1.6s var(--ease-out-soft) 1;
+    }
+
+    @keyframes verse-flash {
+        0%, 35% { background-color: color-mix(in srgb, var(--color-accent-light) 65%, transparent); }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+        .verse-focus { animation: none; }
+    }
+}

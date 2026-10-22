@@ -1,30 +1,44 @@
 <x-layouts.public :title="$book['name'].' '.$chapter" :description="$book['name'].' capítulo '.$chapter.' ('.$versionName.').'">
     @php
         $reference = $book['name'].' '.$chapter;
+        // Paginación del capítulo (en el navegador): se abre en la página del versículo enlazado.
+        $perPage = 10;
+        $total = count($verses ?? []);
+        // Por posición (no por número): hay capítulos y versiones con numeración discontinua.
+        $positions = collect($verses ?? [])->pluck('verse')->flip();
+        $startPage = $highlight ? intdiv($positions[$highlight[0]] ?? 0, $perPage) + 1 : 1;
+        $previousUrl = $previous ? route('bible.chapter', [$previous['book']['slug'], $previous['chapter']]) : null;
+        $nextUrl = $next ? route('bible.chapter', [$next['book']['slug'], $next['chapter']]) : null;
     @endphp
 
     <div x-data="bibleReader({
             books: @js($books),
-            current: @js(['name' => $book['name'], 'slug' => $book['slug'], 'chapter' => $chapter, 'testament' => $book['testament']]),
+            current: @js(['name' => $book['name'], 'slug' => $book['slug'], 'chapter' => $chapter, 'testament' => $book['testament'], 'verses' => $total]),
             chapterUrl: @js(route('bible.chapter', ['__LIBRO__', 999])),
+            countUrl: @js(route('bible.verse-count', ['__LIBRO__', 999])),
             version: @js($versionShort),
-            highlight: {{ $highlight ?: 'null' }},
+            highlight: @js($highlight),
+            perPage: {{ $perPage }},
+            page: {{ $startPage }},
+            previousUrl: @js($previousUrl),
+            nextUrl: @js($nextUrl),
          })"
-         x-on:keydown.escape.window="picker = false; settings = false">
+         x-on:keydown.escape.window="picker = false; settings = false"
+         x-on:keydown.window="keys($event)">
 
-        {{-- ===== Barra del lector (como bible.com): libro/capítulo, versión, tamaño ===== --}}
+        {{-- ===== Barra del lector: libro/capítulo/versículo, versión, tamaño ===== --}}
         <div class="sticky top-20 z-30 border-b border-line bg-white/95 backdrop-blur">
             <div class="container-content flex h-14 items-center justify-between gap-2">
                 <a href="{{ route('bible.index') }}" class="inline-flex size-10 items-center justify-center rounded-full text-primary hover:bg-cream" title="Inicio de la Biblia">
                     <x-ui.icon name="book" class="size-5" /><span class="sr-only">Inicio de la Biblia</span>
                 </a>
 
-                <div class="flex items-center gap-2">
-                    <button type="button" x-on:click="picker = ! picker; settings = false; step = 'books'" :aria-expanded="picker.toString()" aria-expanded="false" aria-controls="selector-pasaje"
-                            class="inline-flex min-h-10 items-center gap-2 rounded-full bg-stone-100 px-4 font-display text-sm font-bold text-primary uppercase hover:bg-cream">
-                        {{ $reference }} <x-ui.icon name="chevron-right" class="size-4 rotate-90" />
+                <div class="flex min-w-0 items-center gap-2">
+                    <button type="button" x-on:click="openPicker()" :aria-expanded="picker.toString()" aria-expanded="false" aria-controls="selector-pasaje"
+                            class="inline-flex min-h-10 min-w-0 items-center gap-2 rounded-full bg-stone-100 px-4 font-display text-sm font-bold text-primary uppercase hover:bg-cream">
+                        <span class="truncate" x-text="title()">{{ $reference }}</span> <x-ui.icon name="chevron-right" class="size-4 shrink-0 rotate-90" />
                     </button>
-                    <span class="inline-flex min-h-10 items-center rounded-full border border-line px-3 text-xs font-bold text-primary" title="{{ $versionName }}">{{ $versionShort }}</span>
+                    <span class="inline-flex min-h-10 shrink-0 items-center rounded-full border border-line px-3 text-xs font-bold text-primary" title="{{ $versionName }}">{{ $versionShort }}</span>
                 </div>
 
                 <button type="button" x-on:click="settings = ! settings; picker = false" :aria-expanded="settings.toString()" aria-expanded="false" aria-controls="ajustes-lectura"
@@ -33,45 +47,11 @@
                 </button>
             </div>
 
-            {{-- Selector de libro y capítulo --}}
+            {{-- Selector: libro → capítulo → versículo (compartido con la portada) --}}
             <div id="selector-pasaje" x-show="picker" x-cloak x-transition.opacity x-on:click.outside="picker = false"
-                 class="absolute inset-x-0 top-full max-h-[70dvh] overflow-y-auto border-b border-line bg-white shadow-xl">
+                 class="absolute inset-x-0 top-full max-h-[75dvh] overflow-y-auto border-b border-line bg-white shadow-xl">
                 <div class="container-content py-5">
-                    <template x-if="step === 'books'">
-                        <div>
-                            <div class="flex gap-2" role="tablist">
-                                <template x-for="(label, key) in { AT: 'Antiguo Testamento', NT: 'Nuevo Testamento' }" :key="key">
-                                    <button type="button" role="tab" x-on:click="testament = key" :aria-selected="(testament === key).toString()"
-                                            class="rounded-full px-4 py-2 text-sm font-semibold" :class="testament === key ? 'bg-primary text-white' : 'bg-stone-100 text-primary hover:bg-cream'" x-text="label"></button>
-                                </template>
-                            </div>
-                            <ul class="mt-4 grid grid-cols-2 gap-1 sm:grid-cols-3 lg:grid-cols-5">
-                                <template x-for="b in books.filter(b => b.testament === testament)" :key="b.slug">
-                                    <li>
-                                        <button type="button" x-on:click="chooseBook(b)"
-                                                class="flex min-h-10 w-full items-center rounded-control px-3 text-left text-sm hover:bg-cream"
-                                                :class="b.slug === current.slug ? 'font-bold text-brand-strong' : 'text-ink'" x-text="b.name"></button>
-                                    </li>
-                                </template>
-                            </ul>
-                        </div>
-                    </template>
-                    <template x-if="step === 'chapters'">
-                        <div>
-                            <button type="button" x-on:click="step = 'books'" class="inline-flex items-center gap-1 text-sm font-semibold text-brand-strong hover:underline">
-                                <x-ui.icon name="chevron-left" class="size-4" /> Libros
-                            </button>
-                            <p class="mt-2 font-display text-xl font-bold text-primary" x-text="book.name"></p>
-                            <ul class="mt-3 grid grid-cols-6 gap-1.5 sm:grid-cols-10 lg:grid-cols-15">
-                                <template x-for="n in book.chapters" :key="n">
-                                    <li>
-                                        <a :href="url(book.slug, n)" class="flex size-11 items-center justify-center rounded-control text-sm font-semibold"
-                                           :class="book.slug === current.slug && n === current.chapter ? 'bg-brand-strong text-white' : 'bg-stone-100 hover:bg-brand/20'" x-text="n"></a>
-                                    </li>
-                                </template>
-                            </ul>
-                        </div>
-                    </template>
+                    @include('bible.partials.passage-steps')
                 </div>
             </div>
 
@@ -89,38 +69,79 @@
             </div>
         </div>
 
-        {{-- ===== Texto ===== --}}
-        <article class="container-content max-w-2xl! py-12">
-            <h1 class="text-center font-display text-3xl font-bold tracking-wide text-primary uppercase sm:text-4xl">{{ $reference }}</h1>
-            <p class="mt-2 text-center text-sm text-muted">{{ $versionName }}</p>
+        {{-- ===== Texto (paginado) ===== --}}
+        <article x-ref="top" class="container-content max-w-2xl! scroll-mt-40 py-10 sm:py-12">
+            <header class="text-center">
+                <h1 class="font-display text-3xl font-bold tracking-wide text-primary uppercase sm:text-4xl">{{ $reference }}</h1>
+                <p class="mt-2 text-sm text-muted">{{ $versionName }}</p>
+            </header>
 
             @if ($verses === null)
                 <x-ui.alert type="error" class="mt-10">No pudimos cargar este capítulo en este momento. Inténtalo de nuevo en unos minutos.</x-ui.alert>
             @else
-                <p class="mt-10 font-display leading-[2.1] text-ink" :class="sizes[size]">
-                    @foreach ($verses as $verse)
-                        <span id="v{{ $verse['verse'] }}" data-verse="{{ $verse['verse'] }}" data-text="{{ $verse['text'] }}"
+                {{-- Indicador de la página actual --}}
+                <div x-show="pages > 1" x-cloak class="mt-8 flex items-center justify-center gap-3 text-sm text-muted">
+                    <span class="h-px w-10 bg-line" aria-hidden="true"></span>
+                    <span aria-live="polite">Versículos <strong class="text-primary tabular-nums" x-text="rangeLabel()"></strong> de <span class="tabular-nums">{{ $total }}</span></span>
+                    <span class="h-px w-10 bg-line" aria-hidden="true"></span>
+                </div>
+
+                <p class="mt-6 font-display leading-[2.1] text-ink" :class="sizes[size]">
+                    @foreach ($verses as $i => $verse)
+                        @php
+                            $n = $verse['verse'];
+                            $inFirstPage = intdiv($i, $perPage) + 1 === $startPage;
+                            $isHighlighted = $highlight && $n >= $highlight[0] && $n <= $highlight[1];
+                        @endphp
+                        {{-- Sin JavaScript se ve el capítulo completo; con él, solo la página actual. --}}
+                        <span id="v{{ $n }}" data-verse="{{ $n }}" data-index="{{ $i }}" data-text="{{ $verse['text'] }}"
+                              @unless ($inFirstPage) x-cloak @endunless
+                              x-show="inPage({{ $i }})"
                               role="button" tabindex="0"
-                              x-on:click="toggle({{ $verse['verse'] }})" x-on:keydown.enter.prevent="toggle({{ $verse['verse'] }})" x-on:keydown.space.prevent="toggle({{ $verse['verse'] }})"
-                              :aria-pressed="selected.includes({{ $verse['verse'] }}).toString()"
-                              class="scroll-mt-40 cursor-pointer rounded-sm decoration-brand decoration-2 underline-offset-[6px] transition-colors hover:bg-cream focus-visible:bg-cream"
-                              :class="selected.includes({{ $verse['verse'] }}) && 'bg-brand/20 underline decoration-dotted'"><sup class="me-0.5 font-sans text-[0.65em] font-bold text-brand-strong">{{ $verse['verse'] }}</sup>{{ $verse['text'] }} </span>
+                              x-on:click="toggle({{ $n }})" x-on:keydown.enter.prevent="toggle({{ $n }})" x-on:keydown.space.prevent="toggle({{ $n }})"
+                              :aria-pressed="selected.includes({{ $n }}).toString()"
+                              @class(['scroll-mt-48 cursor-pointer rounded-sm decoration-brand decoration-2 underline-offset-[6px] transition-colors hover:bg-cream focus-visible:bg-cream', 'verse-focus' => $isHighlighted])
+                              :class="{ 'verse-focus': isFocused({{ $n }}), 'underline decoration-dotted': selected.includes({{ $n }}) }"><sup class="me-0.5 font-sans text-[0.65em] font-bold text-brand-strong">{{ $n }}</sup>{{ $verse['text'] }} </span>
                     @endforeach
                 </p>
-                <p class="mt-8 text-center text-xs text-muted">Toca un versículo para copiarlo o compartirlo.</p>
+
+                {{-- Paginación --}}
+                <nav x-show="pages > 1" x-cloak aria-label="Páginas del capítulo" class="mt-10 flex flex-wrap items-center justify-center gap-2">
+                    <button type="button" x-on:click="go(page - 1)" :disabled="page === 1"
+                            class="inline-flex size-11 items-center justify-center rounded-full bg-white text-primary shadow-sm ring-1 ring-line transition hover:bg-cream disabled:opacity-35">
+                        <x-ui.icon name="chevron-left" class="size-5" /><span class="sr-only">Página anterior</span>
+                    </button>
+                    <template x-for="item in pageItems()" :key="item.key">
+                        <span>
+                            <span x-show="item.gap" class="inline-flex w-6 justify-center text-muted" aria-hidden="true">…</span>
+                            <button x-show="! item.gap" type="button" x-on:click="go(item.n)" :aria-current="item.n === page ? 'page' : null"
+                                    class="inline-flex size-11 items-center justify-center rounded-full text-sm font-bold tabular-nums transition"
+                                    :class="item.n === page ? 'bg-primary-deep text-white shadow-md' : 'bg-white text-primary ring-1 ring-line hover:bg-cream'"
+                                    x-text="item.n" :aria-label="'Página ' + item.n"></button>
+                        </span>
+                    </template>
+                    <button type="button" x-on:click="go(page + 1)" :disabled="page === pages"
+                            class="inline-flex size-11 items-center justify-center rounded-full bg-white text-primary shadow-sm ring-1 ring-line transition hover:bg-cream disabled:opacity-35">
+                        <x-ui.icon name="chevron-right" class="size-5" /><span class="sr-only">Página siguiente</span>
+                    </button>
+                </nav>
+
+                <p class="mt-6 text-center text-xs text-muted">
+                    Toca un versículo para copiarlo o compartirlo<span class="hidden lg:inline"> · usa ← → para cambiar de página</span>.
+                </p>
             @endif
 
-            {{-- Navegación inferior (y la única en móvil) --}}
-            <nav aria-label="Capítulos" class="mt-12 flex items-center justify-between gap-3 border-t border-line pt-6">
+            {{-- Capítulo anterior / siguiente --}}
+            <nav aria-label="Capítulos" class="mt-10 flex items-center justify-between gap-3 border-t border-line pt-6">
                 @if ($previous)
-                    <x-ui.button variant="secondary" href="{{ route('bible.chapter', [$previous['book']['slug'], $previous['chapter']]) }}" rel="prev">
+                    <x-ui.button variant="secondary" href="{{ $previousUrl }}" rel="prev">
                         <x-ui.icon name="chevron-left" class="size-5" /> {{ $previous['book']['name'] }} {{ $previous['chapter'] }}
                     </x-ui.button>
                 @else
                     <span></span>
                 @endif
                 @if ($next)
-                    <x-ui.button variant="secondary" href="{{ route('bible.chapter', [$next['book']['slug'], $next['chapter']]) }}" rel="next">
+                    <x-ui.button variant="secondary" href="{{ $nextUrl }}" rel="next">
                         {{ $next['book']['name'] }} {{ $next['chapter'] }} <x-ui.icon name="chevron-right" class="size-5" />
                     </x-ui.button>
                 @endif
@@ -131,18 +152,16 @@
             </div>
         </article>
 
-        {{-- Flechas laterales fijas (escritorio), como en bible.com --}}
-        @if ($previous)
-            <a href="{{ route('bible.chapter', [$previous['book']['slug'], $previous['chapter']]) }}" title="{{ $previous['book']['name'] }} {{ $previous['chapter'] }}"
-               class="fixed top-1/2 left-4 z-20 hidden size-12 items-center justify-center rounded-full bg-white text-primary shadow-card ring-1 ring-line hover:bg-cream lg:flex xl:left-10">
-                <x-ui.icon name="chevron-left" /><span class="sr-only">Capítulo anterior</span>
-            </a>
-        @endif
-        @if ($next)
-            <a href="{{ route('bible.chapter', [$next['book']['slug'], $next['chapter']]) }}" title="{{ $next['book']['name'] }} {{ $next['chapter'] }}"
-               class="fixed top-1/2 right-4 z-20 hidden size-12 items-center justify-center rounded-full bg-white text-primary shadow-card ring-1 ring-line hover:bg-cream lg:flex xl:right-10">
-                <x-ui.icon name="chevron-right" /><span class="sr-only">Capítulo siguiente</span>
-            </a>
+        {{-- Flechas laterales fijas (escritorio): página anterior/siguiente y, en los extremos, capítulo --}}
+        @if ($verses !== null)
+            <button type="button" x-show="page > 1 || previousUrl" x-on:click="turn(-1)" :title="page > 1 ? 'Página anterior' : 'Capítulo anterior'"
+                    class="fixed top-1/2 left-4 z-20 hidden size-12 items-center justify-center rounded-full bg-white text-primary shadow-card ring-1 ring-line hover:bg-cream lg:flex xl:left-10">
+                <x-ui.icon name="chevron-left" /><span class="sr-only" x-text="page > 1 ? 'Página anterior' : 'Capítulo anterior'">Anterior</span>
+            </button>
+            <button type="button" x-show="page < pages || nextUrl" x-on:click="turn(1)" :title="page < pages ? 'Página siguiente' : 'Capítulo siguiente'"
+                    class="fixed top-1/2 right-4 z-20 hidden size-12 items-center justify-center rounded-full bg-white text-primary shadow-card ring-1 ring-line hover:bg-cream lg:flex xl:right-10">
+                <x-ui.icon name="chevron-right" /><span class="sr-only" x-text="page < pages ? 'Página siguiente' : 'Capítulo siguiente'">Siguiente</span>
+            </button>
         @endif
 
         {{-- Barra de acciones al seleccionar versículos --}}
@@ -158,10 +177,12 @@
            class="fixed inset-x-0 bottom-20 z-40 mx-auto w-fit rounded-full bg-stone-900 px-4 py-2 text-sm text-white shadow-lg"></p>
     </div>
 
+    @include('bible.partials.scripts')
     <script>
-        // Lector de la Biblia: selector, tamaño de letra, selección y recientes.
+        // Lector de la Biblia: selector (libro → capítulo → versículo), paginación,
+        // versículo resaltado, tamaño de letra, selección y recientes.
         // Las preferencias quedan solo en este navegador (localStorage, con protección).
-        function bibleReader({ books, current, chapterUrl, version, highlight }) {
+        function bibleReader({ books, current, chapterUrl, countUrl, version, highlight, perPage, page, previousUrl, nextUrl }) {
             // Copia con la API del portapapeles y, si no está disponible (sin HTTPS
             // o sin permiso), con el método clásico de un textarea temporal.
             async function copyText(text) {
@@ -182,22 +203,94 @@
             };
 
             return {
-                books, current, version,
-                picker: false, settings: false, step: 'books',
-                testament: current.testament, book: null,
+                ...passagePicker({ books, chapterUrl, countUrl, current }),
+                current, version, highlight, perPage, page, previousUrl, nextUrl,
+                pages: Math.max(1, Math.ceil(current.verses / perPage)),
+                picker: false, settings: false,
                 sizes: ['text-base', 'text-lg', 'text-xl', 'text-2xl', 'text-3xl'],
                 size: store.get('biblia-tamano', 1),
-                selected: highlight ? [highlight] : [],
+                selected: [],
                 notice: '',
 
                 init() {
                     const recents = store.get('biblia-recientes', []).filter((r) => ! (r.slug === current.slug && r.chapter === current.chapter));
                     recents.unshift({ name: current.name, slug: current.slug, chapter: current.chapter, url: location.pathname });
                     store.set('biblia-recientes', recents.slice(0, 6));
-                    if (highlight) this.$nextTick(() => document.getElementById('v' + highlight)?.scrollIntoView({ block: 'center' }));
+                    // Al cargar con «?v=»: centrar el versículo resaltado.
+                    if (highlight) this.$nextTick(() => this.reveal(highlight[0], 'auto'));
                 },
-                url(slug, n) { return chapterUrl.replace('__LIBRO__', slug).replace(/999$/, n); },
-                chooseBook(b) { this.book = b; this.step = 'chapters'; },
+
+                // ----- Paginación -----
+                inPage(index) { return Math.floor(index / perPage) + 1 === this.page; },
+                // Números reales del primer y último versículo de la página.
+                rangeLabel() {
+                    const nums = [...document.querySelectorAll('[data-index]')].filter((el) => this.inPage(+el.dataset.index)).map((el) => el.dataset.verse);
+                    return nums.length ? `${nums[0]}–${nums[nums.length - 1]}` : '';
+                },
+                go(p, scroll = true) {
+                    if (p < 1 || p > this.pages || p === this.page) return;
+                    this.page = p;
+                    if (scroll) this.$nextTick(() => {
+                        const top = this.$refs.top.getBoundingClientRect().top;
+                        if (top < 0 || top > innerHeight * 0.5) this.$refs.top.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                    });
+                },
+                // Flechas: cambian de página y, en los extremos, de capítulo.
+                turn(dir) {
+                    if (dir < 0) this.page > 1 ? this.go(this.page - 1) : previousUrl && (location.href = previousUrl);
+                    else this.page < this.pages ? this.go(this.page + 1) : nextUrl && (location.href = nextUrl);
+                },
+                keys(e) {
+                    if (this.picker || e.altKey || e.ctrlKey || e.metaKey || /input|textarea|select/i.test(e.target.tagName)) return;
+                    if (e.key === 'ArrowLeft') { e.preventDefault(); this.turn(-1); }
+                    if (e.key === 'ArrowRight') { e.preventDefault(); this.turn(1); }
+                },
+                // Números de página compactos: 1 … 4 5 6 … 12
+                pageItems() {
+                    const all = Array.from({ length: this.pages }, (_, i) => i + 1);
+                    const keep = all.filter((n) => n === 1 || n === this.pages || Math.abs(n - this.page) <= 1);
+                    const items = [];
+                    keep.forEach((n, i) => {
+                        if (i && n - keep[i - 1] > 1) items.push({ gap: true, key: 'gap' + n });
+                        items.push({ n, key: 'p' + n });
+                    });
+                    return items;
+                },
+
+                // ----- Versículo resaltado -----
+                isFocused(n) { return !! this.highlight && n >= this.highlight[0] && n <= this.highlight[1]; },
+                reveal(n, behavior = 'smooth') {
+                    const el = document.getElementById('v' + n);
+                    if (! el) return;
+                    this.go(Math.floor(+el.dataset.index / perPage) + 1, false);
+                    this.$nextTick(() => el.scrollIntoView({ behavior, block: 'center' }));
+                },
+                title() {
+                    if (! this.highlight) return `${current.name} ${current.chapter}`;
+                    const [a, b] = this.highlight;
+                    return `${current.name} ${current.chapter}:${a === b ? a : a + '-' + b}`;
+                },
+
+                // ----- Selector (pasos en passagePicker) -----
+                openPicker() {
+                    this.picker = ! this.picker;
+                    this.settings = false;
+                    // Se abre en los capítulos del libro que se está leyendo.
+                    if (this.picker) { this.book = books.find((b) => b.slug === current.slug); this.step = 'chapters'; }
+                },
+                isCurrent(n) { return this.book?.slug === current.slug && n === current.chapter; },
+                isHighlighted(v) { return this.isCurrentChapter() && !! this.highlight && v >= this.highlight[0] && v <= this.highlight[1]; },
+                // En el mismo capítulo no se recarga: se pasa a su página y se resalta.
+                pickVerse(event, v) {
+                    if (! this.isCurrentChapter()) return;
+                    event.preventDefault();
+                    this.highlight = [v, v];
+                    this.picker = false;
+                    history.replaceState(null, '', `${location.pathname}?v=${v}#v${v}`);
+                    this.reveal(v);
+                },
+
+                // ----- Lectura y selección -----
                 setSize(n) { this.size = Math.max(0, Math.min(4, n)); store.set('biblia-tamano', this.size); },
                 toggle(n) {
                     this.selected = this.selected.includes(n) ? this.selected.filter((v) => v !== n) : [...this.selected, n].sort((a, b) => a - b);
@@ -211,7 +304,11 @@
                     const verses = this.selected.map((n) => document.querySelector(`[data-verse="${n}"]`)?.dataset.text).join(' ');
                     return `«${verses}»\n— ${this.label()} (${version})`;
                 },
-                link() { return `${location.origin}${location.pathname}?v=${this.selected[0]}#v${this.selected[0]}`; },
+                link() {
+                    const v = this.selected;
+                    const range = v[v.length - 1] - v[0] === v.length - 1 && v.length > 1 ? `${v[0]}-${v[v.length - 1]}` : v[0];
+                    return `${location.origin}${location.pathname}?v=${range}#v${v[0]}`;
+                },
                 flash(message) { this.notice = message; setTimeout(() => this.notice = '', 2200); },
                 async copy() {
                     this.flash(await copyText(this.text()) ? 'Versículo copiado' : 'No se pudo copiar');

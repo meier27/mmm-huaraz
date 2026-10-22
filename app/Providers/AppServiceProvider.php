@@ -5,13 +5,12 @@ namespace App\Providers;
 use App\Enums\Role;
 use App\Livewire\Uploads\ShortNameFileUploadController;
 use App\Models\ChurchEvent;
-use App\Models\Reservation;
 use App\Models\SiteSetting;
 use App\Models\User;
 use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Pagination\Paginator;
 use Illuminate\Http\Request;
+use Illuminate\Pagination\Paginator;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\Facades\View;
@@ -48,7 +47,7 @@ class AppServiceProvider extends ServiceProvider
         $this->configureRateLimiting();
 
         // $site: identidad y contacto del movimiento (en todas las vistas públicas).
-        View::composer(['components.layouts.public', 'pages.*', 'teachings.*', 'bible.*', 'events.*', 'reservations.*'], fn ($view) => $view->with('site', SiteSetting::current()));
+        View::composer(['components.layouts.public', 'pages.*', 'teachings.*', 'bible.*', 'events.*'], fn ($view) => $view->with('site', SiteSetting::current()));
 
         // Evento destacado para el pie de página: solo el layout, una consulta por página.
         View::composer('components.layouts.public', fn ($view) => $view->with('featuredEvent', ChurchEvent::featured()));
@@ -59,8 +58,7 @@ class AppServiceProvider extends ServiceProvider
         Gate::define('access-admin', fn (User $user) => $user->is_active);
         Gate::define('manage-users', fn (User $user) => $user->isAdmin());
         Gate::define('manage-content', fn (User $user) => $user->hasRole(Role::Admin, Role::Editor));
-        Gate::define('manage-reservations', fn (User $user) => $user->can('viewAny', Reservation::class));
-        // Verificar aportes y ver comprobantes: quienes manejan dinero.
+        // Verificar aportes y ver comprobantes: administración y tesorería.
         Gate::define('manage-donations', fn (User $user) => $user->hasRole(Role::Admin, Role::Cashier));
     }
 
@@ -68,8 +66,5 @@ class AppServiceProvider extends ServiceProvider
     {
         // Límite global por IP; el límite por cuenta lo aplica LoginController.
         RateLimiter::for('login', fn (Request $request) => Limit::perMinute(30)->by($request->ip()));
-
-        // Consulta de reservas por token: dificulta cualquier intento de enumeración.
-        RateLimiter::for('reservation-lookup', fn (Request $request) => Limit::perMinute(30)->by($request->ip()));
     }
 }

@@ -163,4 +163,127 @@ class BibleTest extends TestCase
             ->assertSee('data-verse="16"', false)
             ->assertSee('Apocalipsis'); // libros del selector
     }
+
+    /** Capítulo simulado de N versículos (1..N). */
+    private function fakeLongChapter(int $verses = 25): void
+    {
+        Http::preventStrayRequests();
+        Http::fake([
+            'esbiblia.net/api/view/SAL/23/*' => Http::response(['verses' => array_map(
+                fn (int $n) => ['verse' => $n, 'text' => "Texto del versículo {$n}"], range(1, $verses),
+            )]),
+        ]);
+    }
+
+    /** El <span> de un versículo, para comprobar sus atributos. */
+    private function verseTag(string $html, int $n): string
+    {
+        preg_match('/<span id="v'.$n.'"[^>]*>/', $html, $m);
+
+        return $m[0] ?? '';
+    }
+
+    /** Clases que el servidor pone al versículo (sin las de Alpine en «:class»). */
+    private function verseClass(string $html, int $n): string
+    {
+        preg_match('/\sclass="([^"]*)"/', $this->verseTag($html, $n), $m);
+
+        return $m[1] ?? '';
+    }
+
+    public function test_linked_verse_is_shaded_and_its_page_is_shown(): void
+    {
+        $this->fakeLongChapter();
+
+        $html = $this->get('/biblia/salmos/23?v=23')->assertOk()->getContent();
+
+        // Sombreado solo el enlazado.
+        $this->assertStringContainsString('verse-focus', $this->verseClass($html, 23));
+        $this->assertStringNotContainsString('verse-focus', $this->verseClass($html, 22));
+
+        // Se abre en su página (21–25): esa se ve, la primera queda oculta hasta cambiar de página.
+        $this->assertStringNotContainsString('x-cloak', $this->verseTag($html, 21));
+        $this->assertStringContainsString('x-cloak', $this->verseTag($html, 1));
+    }
+
+    public function test_verse_ranges_are_shaded_and_invalid_verses_ignored(): void
+    {
+        $this->fakeLongChapter();
+
+        $html = $this->get('/biblia/salmos/23?v=3-5')->getContent();
+        foreach ([3, 4, 5] as $n) {
+            $this->assertStringContainsString('verse-focus', $this->verseClass($html, $n));
+        }
+        $this->assertStringNotContainsString('verse-focus', $this->verseClass($html, 6));
+
+        foreach (['99', '5-2', 'abc', '0'] as $bad) {
+            $html = $this->get('/biblia/salmos/23?v='.$bad)->assertOk()->getContent();
+            $this->assertStringNotContainsString('verse-focus', $this->verseClass($html, 1).$this->verseClass($html, 5), "v={$bad}");
+            $this->assertStringNotContainsString('x-cloak', $this->verseTag($html, 1), "v={$bad}: abre en la página 1");
+        }
+    }
+
+    public function test_chapter_is_paginated_ten_verses_at_a_time(): void
+    {
+        $this->fakeLongChapter();
+
+        $html = $this->get('/biblia/salmos/23')->assertOk()->assertSee('aria-label="Páginas del capítulo"', false)->getContent();
+
+        $this->assertStringNotContainsString('x-cloak', $this->verseTag($html, 10));
+        $this->assertStringContainsString('x-cloak', $this->verseTag($html, 11));
+        // Todo el texto sigue en la página (búsqueda del navegador, sin JavaScript).
+        $this->assertStringContainsString('Texto del versículo 25', $html);
+    }
+
+    public function test_verse_count_endpoint_feeds_the_verse_picker(): void
+    {
+        $this->fakeLongChapter(6);
+
+        $this->getJson('/biblia/salmos/23/versiculos')->assertOk()->assertExactJson(['count' => 6]);
+        $this->getJson('/biblia/salmos/999/versiculos')->assertNotFound();
+        $this->getJson('/biblia/no-existe/1/versiculos')->assertNotFound();
+    }
+
+    public function test_search_box_understands_books_passages_and_ranges(): void
+    {
+        $q = fn (string $text) => ($r = BibleApi::parseQuery($text)) ? [$r['book']['slug'], $r['chapter'], $r['verse']] : null;
+
+        $this->assertSame(['juan', null, null], $q('Juan'));
+        $this->assertSame(['1-juan', null, null], $q('1 juan'));
+        $this->assertSame(['juan', 3, '16'], $q('juan 3:16'));
+        $this->assertSame(['genesis', 1, '1'], $q('gen 1:1'));          // comienzo único + capítulo
+        $this->assertSame(['1-corintios', 13, '4-7'], $q('1 Co 13:4-7'));
+        $this->assertSame(['salmos', 119, null], $q('Salmos 119'));
+        $this->assertNull($q('juez'));          // palabra: no se confunde con «Jueces»
+        $this->assertNull($q('esperanza'));
+        $this->assertNull($q('Juan 99'));       // capítulo inexistente
+    }
+
+    public function test_searching_a_passage_or_a_book_opens_it_instead_of_searching_words(): void
+    {
+        Http::preventStrayRequests();
+
+        $this->get('/biblia/buscar?q=Juan+3:16')->assertRedirect('/biblia/juan/3?v=16#v16');
+        $this->get('/biblia/buscar?q=1+co+13:4-7')->assertRedirect('/biblia/1-corintios/13?v=4-7#v4');
+        $this->get('/biblia/buscar?q=Romanos')->assertRedirect('/biblia?libro=romanos#libros');
+    }
+
+    public function test_index_opens_the_chosen_book_and_book_links_open_its_chapters(): void
+    {
+        Http::preventStrayRequests();
+
+        $this->get('/biblia?libro=juan')->assertOk()
+            ->assertSee('id="libro-dialogo"', false)
+            ->assertSee("open: 'juan'", false)
+            ->assertSee('Toca un libro para elegir el capítulo y el versículo.')
+            ->assertSee("\$dispatch('biblia-libro'", false)
+            ->assertSee('placeholder="Libro, cita o palabra', false);
+
+        $this->get('/biblia?libro=no-existe')->assertOk()->assertSee('open: null', false);
+
+        // La ventana recibe los 66 libros (no solo los del último testamento listado).
+        preg_match('/<dialog id="libro-dialogo"[^>]*>/', $this->get('/biblia')->getContent(), $dialog);
+        $this->assertStringContainsString('salmos', $dialog[0]);
+        $this->assertStringContainsString('apocalipsis', $dialog[0]);
+    }
 }

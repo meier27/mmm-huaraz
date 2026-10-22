@@ -2,13 +2,9 @@
 
 namespace App\Console\Commands;
 
-use App\Enums\AccommodationType;
 use App\Enums\TeachingCategory;
-use App\Models\Accommodation;
 use App\Models\Banner;
 use App\Models\ChurchEvent;
-use App\Models\Dish;
-use App\Models\DishOffering;
 use App\Models\Faq;
 use App\Models\GalleryPhoto;
 use App\Models\Leader;
@@ -16,7 +12,6 @@ use App\Models\ProgramDay;
 use App\Models\ProgramItem;
 use App\Models\SiteSetting;
 use App\Models\Teaching;
-use App\Models\TouristPlace;
 use App\Models\Verse;
 use Carbon\CarbonPeriod;
 use Illuminate\Console\Command;
@@ -40,8 +35,7 @@ class DemoContent extends Command
     private const MARK = ' (texto de ejemplo)';
 
     protected $signature = 'app:demo-content
-        {--remove : Elimina el contenido de ejemplo}
-        {--open-reservations : Abre también las reservas para ver los platos en la web (solo para revisar en local)}';
+        {--remove : Elimina el contenido de ejemplo}';
 
     protected $description = 'Crea (o elimina con --remove) contenido de ejemplo para todas las secciones, con imágenes de prueba';
 
@@ -52,13 +46,13 @@ class DemoContent extends Command
 
     private function create(): int
     {
-        if (Banner::where('title', 'like', self::PREFIX.'%')->exists() || Dish::where('name', 'like', self::PREFIX.'%')->exists()) {
+        if (Banner::where('title', 'like', self::PREFIX.'%')->exists()) {
             $this->warn('Ya existe contenido de ejemplo. Usa --remove para eliminarlo antes de volver a crearlo.');
 
             return self::FAILURE;
         }
 
-        // Programa, platos, hospedaje y turismo van en el evento destacado.
+        // El programa de ejemplo va en el evento destacado.
         $event = ChurchEvent::featured();
         if (! $event) {
             $this->error('No hay un evento destacado. Ejecuta «php artisan db:seed» o marca uno en Panel › Eventos.');
@@ -76,19 +70,10 @@ class DemoContent extends Command
             $this->createEvents();
             $this->createFaqs();
             $this->createProgram($event);
-            $this->createAccommodations($event);
-            $this->createTouristPlaces($event);
-            $this->createDishes($event);
         });
 
         $this->info('Contenido de ejemplo creado en todas las secciones (marcado con «[Ejemplo]»).');
         $this->line('No se crean donaciones ni teléfonos de contacto: complétalos con los datos oficiales desde el panel.');
-        if ($this->option('open-reservations')) {
-            $event->update(['has_food' => true, 'reservations_open' => true]);
-            $this->warn("Reservas ABIERTAS en «{$event->title}» para revisar. Ciérralas en Panel › Eventos antes de publicar el sitio.");
-        } else {
-            $this->line("Las reservas de «{$event->title}» siguen cerradas: ábrelas en Panel › Eventos (o usa --open-reservations).");
-        }
 
         return self::SUCCESS;
     }
@@ -129,7 +114,7 @@ class DemoContent extends Command
     {
         $banners = [
             ['Bienvenidos a nuestra iglesia', 'Banner de ejemplo: sustitúyelo por una foto autorizada desde el panel.', 'Conócenos', '/nosotros', [[18, 52, 92], [196, 120, 60]]],
-            ['Convención 2026 en Huaraz', 'Programa, sede, reservas de comida y más.', 'Ver la convención', '/eventos/convencion', [[113, 50, 24], [244, 127, 18]]],
+            ['Convención 2026 en Huaraz', 'Programa, sede y todo para participar.', 'Ver la convención', '/eventos/convencion', [[113, 50, 24], [244, 127, 18]]],
             ['Bethel Televisión en vivo', 'Sigue la señal del canal oficial del movimiento.', 'Ver en vivo', '/bethel-tv', [[0, 46, 93], [120, 170, 200]]],
         ];
 
@@ -253,7 +238,7 @@ class DemoContent extends Command
     {
         $faqs = [
             ['¿Necesito inscribirme para asistir a la convención?', 'Respuesta de ejemplo. Escribe aquí la indicación oficial de la organización.'],
-            ['¿Cómo reservo mi comida?', 'Respuesta de ejemplo. Elige tu plato en la sección Reservas y recógelo con tu código de reserva.'],
+            ['¿Qué debo llevar a los cultos?', 'Respuesta de ejemplo. Indica aquí las recomendaciones de la organización (tu Biblia, abrigo para el clima de Huaraz…).'],
             ['¿Hay lugar para niños?', 'Respuesta de ejemplo. Indica aquí si habrá actividades o espacio para niños.'],
         ];
 
@@ -289,79 +274,6 @@ class DemoContent extends Command
         }
     }
 
-    private function createAccommodations(ChurchEvent $event): void
-    {
-        $places = [
-            [AccommodationType::Hotel, 'Hotel en el centro', 'S/ 120 – 200 por noche'],
-            [AccommodationType::Hostel, 'Hospedaje económico', 'S/ 40 – 70 por noche'],
-            [AccommodationType::FamilyHome, 'Casas de hermanos de la iglesia', 'Consultar con la organización'],
-        ];
-
-        foreach ($places as $i => [$type, $name, $price]) {
-            Accommodation::query()->forceCreate([
-                'church_event_id' => $event->id,
-                'type' => $type, 'name' => self::PREFIX.' '.$name, 'address' => 'Dirección de ejemplo',
-                'price_range' => $price.' (ejemplo)', 'notes' => 'Nota de ejemplo. Sin teléfono: agrégalo solo si es un dato confirmado.',
-                'is_published' => true, 'sort_order' => $i + 1,
-            ]);
-        }
-    }
-
-    private function createTouristPlaces(ChurchEvent $event): void
-    {
-        $places = [
-            ['Laguna de Llanganuco', [0, 90, 110], [120, 200, 210]],
-            ['Laguna 69', [0, 70, 130], [100, 180, 230]],
-            ['Nevado Pastoruri', [90, 110, 140], [230, 235, 245]],
-            ['Chavín de Huántar', [110, 80, 50], [210, 180, 130]],
-        ];
-
-        foreach ($places as $i => [$name, $from, $to]) {
-            $place = TouristPlace::query()->forceCreate([
-                'church_event_id' => $event->id,
-                'name' => self::PREFIX.' '.$name,
-                'description' => 'Descripción de ejemplo. Escribe aquí cómo llegar, el tiempo de viaje y recomendaciones (abrigo, altura, horarios).',
-                'image_alt' => 'Imagen de prueba',
-                'is_published' => true, 'sort_order' => $i + 1,
-            ]);
-            $place->replaceImage($this->image(1200, 900, $from, $to, 'mountains'));
-        }
-    }
-
-    private function createDishes(ChurchEvent $event): void
-    {
-        // Platos típicos de la región como referencia; precios inventados.
-        $dishes = [
-            ['Pachamanca a la olla', 'Carnes maceradas en hierbas andinas, con papa, camote, habas y humita.', '18.00', [120, 70, 30], [215, 160, 80]],
-            ['Picante de cuy', 'Cuy frito con papas en salsa de ají panca y maní, acompañado de arroz.', '22.00', [150, 50, 20], [235, 140, 60]],
-            ['Llunca kashki', 'Caldo de gallina con trigo pelado, tradicional de Áncash.', '12.00', [170, 130, 50], [240, 210, 130]],
-            ['Trucha frita', 'Trucha de la sierra con papas doradas, arroz y ensalada.', '16.00', [60, 100, 120], [200, 210, 190]],
-            ['Ceviche de chocho', 'Chocho (tarwi) con cebolla, tomate, ají y limón. Ligero y nutritivo.', '7.00', [90, 120, 40], [225, 220, 150]],
-        ];
-
-        $days = $event->hasDates() ? CarbonPeriod::create($event->starts_on, $event->endDate()) : [];
-
-        foreach ($dishes as $i => [$name, $description, $price, $from, $to]) {
-            $dish = Dish::query()->forceCreate([
-                'church_event_id' => $event->id,
-                'name' => self::PREFIX.' '.$name,
-                'description' => $description.' (Precio y descripción de ejemplo.)',
-                'image_alt' => 'Imagen de prueba de '.mb_strtolower($name),
-                'is_published' => true, 'sort_order' => $i + 1,
-            ]);
-            $dish->replaceImage($this->image(1200, 750, $from, $to, 'plate'));
-
-            foreach ($days as $day) {
-                foreach ([['12:00', '14:00'], ['19:00', '21:00']] as [$start, $end]) {
-                    DishOffering::create([
-                        'dish_id' => $dish->id, 'serve_date' => Carbon::parse($day)->toDateString(),
-                        'slot_start' => $start, 'slot_end' => $end, 'price' => $price, 'stock' => 50, 'is_active' => true,
-                    ]);
-                }
-            }
-        }
-    }
-
     // ---------------------------------------------------------------------
     // Eliminación
     // ---------------------------------------------------------------------
@@ -375,25 +287,12 @@ class DemoContent extends Command
         foreach ([
             [Banner::class, 'title'], [GalleryPhoto::class, 'image_alt'], [Teaching::class, 'title'], [ChurchEvent::class, 'title'],
             [Verse::class, 'reference'], [Leader::class, 'name'], [Faq::class, 'question'],
-            [ProgramItem::class, 'title'], [Accommodation::class, 'name'], [TouristPlace::class, 'name'],
+            [ProgramItem::class, 'title'],
         ] as [$model, $column]) {
             foreach ($model::where($column, 'like', $like)->get() as $record) {
                 $record->delete();
                 $removed++;
             }
-        }
-
-        foreach (Dish::where('name', 'like', $like)->with('offerings')->get() as $dish) {
-            if ($dish->offerings->contains(fn ($o) => $o->items()->exists())) {
-                $this->warn("«{$dish->name}» tiene reservas: se despublica en lugar de eliminarse.");
-                $dish->update(['is_published' => false]);
-
-                continue;
-            }
-
-            $dish->offerings->each->delete();
-            $dish->delete();
-            $removed++;
         }
 
         // Textos del sitio: solo se vacían los que siguen siendo los de ejemplo.

@@ -203,3 +203,32 @@
         .verse-focus { animation: none; }
     }
 }
+
+/* Doctrinario: entrada de la página en móvil (una página a la vez). */
+@layer components {
+    .book-in-next { animation: book-in-next 0.35s var(--ease-out-soft); }
+    .book-in-prev { animation: book-in-prev 0.35s var(--ease-out-soft); }
+
+    @keyframes book-in-next { from { opacity: 0; transform: translateX(8%); } }
+    @keyframes book-in-prev { from { opacity: 0; transform: translateX(-8%); } }
+
+    @media (prefers-reduced-motion: reduce) {
+        .book-in-next, .book-in-prev { animation: none; }
+    }
+}
+
+/* Juegos bíblicos: aparición del resultado y «sacudida» al equivocarse. */
+@layer components {
+    .game-pop { animation: game-pop 0.35s var(--ease-out-soft); }
+    .game-shake { animation: game-shake 0.4s ease-in-out; }
+
+    @keyframes game-pop { from { opacity: 0; transform: scale(0.94); } }
+    @keyframes game-shake {
+        20%, 60% { transform: translateX(-5px); }
+        40%, 80% { transform: translateX(5px); }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+        .game-pop, .game-shake { animation: none; }
+    }
+}

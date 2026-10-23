@@ -47,7 +47,7 @@ class AppServiceProvider extends ServiceProvider
         $this->configureRateLimiting();
 
         // $site: identidad y contacto del movimiento (en todas las vistas públicas).
-        View::composer(['components.layouts.public', 'pages.*', 'teachings.*', 'bible.*', 'events.*'], fn ($view) => $view->with('site', SiteSetting::current()));
+        View::composer(['components.layouts.public', 'pages.*', 'teachings.*', 'bible.*', 'events.*', 'games.*'], fn ($view) => $view->with('site', SiteSetting::current()));
 
         // Evento destacado para el pie de página: solo el layout, una consulta por página.
         View::composer('components.layouts.public', fn ($view) => $view->with('featuredEvent', ChurchEvent::featured()));
@@ -55,11 +55,12 @@ class AppServiceProvider extends ServiceProvider
 
     private function configureGates(): void
     {
-        Gate::define('access-admin', fn (User $user) => $user->is_active);
-        Gate::define('manage-users', fn (User $user) => $user->isAdmin());
-        Gate::define('manage-content', fn (User $user) => $user->hasRole(Role::Admin, Role::Editor));
+        // Solo usuarios del panel: un jugador de los juegos (otro guard) nunca pasa.
+        Gate::define('access-admin', fn (object $user) => $user instanceof User && $user->is_active);
+        Gate::define('manage-users', fn (object $user) => $user instanceof User && $user->isAdmin());
+        Gate::define('manage-content', fn (object $user) => $user instanceof User && $user->hasRole(Role::Admin, Role::Editor));
         // Verificar aportes y ver comprobantes: administración y tesorería.
-        Gate::define('manage-donations', fn (User $user) => $user->hasRole(Role::Admin, Role::Cashier));
+        Gate::define('manage-donations', fn (object $user) => $user instanceof User && $user->hasRole(Role::Admin, Role::Cashier));
     }
 
     private function configureRateLimiting(): void

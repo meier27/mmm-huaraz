@@ -2,9 +2,11 @@
 
 namespace App\Http\Controllers;
 
+use App\Enums\TeachingCategory;
 use App\Models\AboutBlock;
 use App\Models\Banner;
 use App\Models\ChurchEvent;
+use App\Models\DoctrineBook;
 use App\Models\Faq;
 use App\Models\GalleryPhoto;
 use App\Models\Leader;
@@ -13,7 +15,10 @@ use App\Models\Motto;
 use App\Models\SiteSetting;
 use App\Models\Teaching;
 use App\Models\Verse;
+use App\Services\GameCatalog;
+use App\Support\FlipBook;
 use App\Support\YouTube;
+use Illuminate\Support\Facades\URL;
 use Illuminate\View\View;
 
 /**
@@ -21,7 +26,7 @@ use Illuminate\View\View;
  */
 class SiteController extends Controller
 {
-    public function home(): View
+    public function home(GameCatalog $games): View
     {
         $featured = ChurchEvent::featured();
         $banners = Banner::query()->published()->ordered()->get();
@@ -47,6 +52,7 @@ class SiteController extends Controller
             'teachings' => $teachings,
             'gallery' => $gallery,
             'motto' => Motto::current(),
+            'games' => $games->catalog()->filter(fn ($game) => $game['ready']),
             'media' => MediaOutlet::query()->published()->ordered()->get(),
             'verse' => Verse::query()->published()->ordered()->first(),
             'nextEvent' => ChurchEvent::query()->published()->upcoming()->when($featured, fn ($q) => $q->whereKeyNot($featured->id))->first(),
@@ -68,6 +74,25 @@ class SiteController extends Controller
         return view('pages.bethel', [
             'liveUrl' => YouTube::liveEmbedUrl($channelId),
             'channelUrl' => 'https://www.youtube.com/channel/'.$channelId,
+        ]);
+    }
+
+    /**
+     * Doctrina: el Doctrinario en el lector propio (si ya se subió el PDF) o, si
+     * no, el libro de FlipHTML5; y las enseñanzas de esa categoría.
+     */
+    public function doctrine(): View
+    {
+        $book = DoctrineBook::current();
+        // Enlaces firmados de 3 horas: no sirven fuera de este sitio ni después.
+        $expires = now()->addHours(3);
+
+        return view('pages.doctrine', [
+            'book' => $book,
+            'toc' => $book?->index() ?? [],
+            'pages' => $book ? collect(range(1, $book->page_count))->map(fn (int $n) => URL::temporarySignedRoute('doctrine.page', $expires, [$book, $n]))->all() : [],
+            'bookUrl' => $book ? null : (FlipBook::url(SiteSetting::current()->doctrine_book_url) ?? FlipBook::url(config('bible.doctrine_book_url'))),
+            'teachings' => Teaching::query()->published()->where('category', TeachingCategory::Doctrine)->latestFirst()->limit(6)->get(),
         ]);
     }
 

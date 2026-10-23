@@ -17,7 +17,7 @@ const SELECTORS = [
     'main figure',
 ].join(',');
 
-const EXCLUDED = '[wire\\:id], header, footer, nav, [role="tablist"], [aria-roledescription="carrusel"], dl';
+const EXCLUDED = '[data-game], [wire\\:id], header, footer, nav, [role="tablist"], [aria-roledescription="carrusel"], dl';
 
 function setup() {
     if (window.matchMedia('(prefers-reduced-motion: reduce)').matches || !('IntersectionObserver' in window)) {

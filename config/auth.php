@@ -1,5 +1,6 @@
 <?php
 
+use App\Models\Player;
 use App\Models\User;
 
 return [
@@ -42,6 +43,12 @@ return [
             'driver' => 'session',
             'provider' => 'users',
         ],
+
+        // Jugadores de los juegos bíblicos: otra tabla y otro guard, sin acceso al panel.
+        'player' => [
+            'driver' => 'session',
+            'provider' => 'players',
+        ],
     ],
 
     /*
@@ -65,6 +72,11 @@ return [
         'users' => [
             'driver' => 'eloquent',
             'model' => env('AUTH_MODEL', User::class),
+        ],
+
+        'players' => [
+            'driver' => 'eloquent',
+            'model' => Player::class,
         ],
 
         // 'users' => [
@@ -96,6 +108,13 @@ return [
         'users' => [
             'provider' => 'users',
             'table' => env('AUTH_PASSWORD_RESET_TOKEN_TABLE', 'password_reset_tokens'),
+            'expire' => 60,
+            'throttle' => 60,
+        ],
+
+        'players' => [
+            'provider' => 'players',
+            'table' => 'player_password_reset_tokens',
             'expire' => 60,
             'throttle' => 60,
         ],

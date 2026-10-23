@@ -34,7 +34,8 @@ class AuditLog extends Model
         $request = app()->runningInConsole() ? null : request();
 
         return static::create([
-            'user_id' => auth()->id(),
+            // Siempre el usuario del panel (guard «web»), nunca un jugador de los juegos.
+            'user_id' => auth()->guard('web')->id(),
             'action' => $action,
             'auditable_type' => $model->getMorphClass(),
             'auditable_id' => $model->getKey(),

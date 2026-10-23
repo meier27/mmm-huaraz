@@ -2,6 +2,8 @@
 
 namespace App\Livewire\Forms;
 
+use App\Support\FlipBook;
+use App\Support\GoogleMaps;
 use Illuminate\Validation\Rule;
 
 class SiteSettingsForm extends ContentForm
@@ -33,6 +35,8 @@ class SiteSettingsForm extends ContentForm
 
     public ?string $bethel_channel_id = '';
 
+    public ?string $doctrine_book_url = '';
+
     protected function rules(): array
     {
         $phone = ['nullable', 'string', 'max:30', 'regex:/^[0-9+\s()-]+$/'];
@@ -51,6 +55,12 @@ class SiteSettingsForm extends ContentForm
             'bible_version' => ['required', Rule::in(array_keys(config('bible.versions')))],
             // Identificador de canal de YouTube: "UC" + 22 caracteres.
             'bethel_channel_id' => ['nullable', 'regex:/^UC[A-Za-z0-9_-]{22}$/'],
+            // Enlace de FlipHTML5 o el código <iframe> que da la página (se guarda solo el enlace).
+            'doctrine_book_url' => ['nullable', 'string', 'max:2000', function (string $attribute, mixed $value, \Closure $fail) {
+                if (filled($value) && ! FlipBook::url($value)) {
+                    $fail('Pega el enlace del libro de FlipHTML5 (https://online.fliphtml5.com/…) o su código para insertar.');
+                }
+            }],
         ];
     }
 
@@ -64,10 +74,14 @@ class SiteSettingsForm extends ContentForm
     /** @return array<string, mixed> */
     public function attributes(): array
     {
-        if ($coordinates = \App\Support\GoogleMaps::coordinatesFromUrl($this->maps_link)) {
+        if ($coordinates = GoogleMaps::coordinatesFromUrl($this->maps_link)) {
             [$this->latitude, $this->longitude] = $coordinates;
         }
 
-        return parent::attributes();
+        $attributes = parent::attributes();
+        // Del código <iframe> pegado solo se guarda el enlace del libro.
+        $attributes['doctrine_book_url'] = FlipBook::url($attributes['doctrine_book_url'] ?? null);
+
+        return $attributes;
     }
 }

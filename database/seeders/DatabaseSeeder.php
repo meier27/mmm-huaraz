@@ -18,6 +18,6 @@ class DatabaseSeeder extends Seeder
      */
     public function run(): void
     {
-        $this->call([ConventionSeeder::class, AboutBlockSeeder::class, MottoSeeder::class, MediaOutletSeeder::class]);
+        $this->call([ConventionSeeder::class, AboutBlockSeeder::class, MottoSeeder::class, MediaOutletSeeder::class, GameSeeder::class]);
     }
 }

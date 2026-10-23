@@ -19,7 +19,7 @@ class SiteSetting extends Model
         'address', 'latitude', 'longitude',
         'contact_phone', 'contact_whatsapp', 'contact_email',
         'facebook_url', 'instagram_url', 'youtube_url', 'tiktok_url',
-        'bible_version', 'bethel_channel_id',
+        'bible_version', 'bethel_channel_id', 'doctrine_book_url',
         'color_primary', 'color_accent', 'color_button', 'color_background', 'color_gradient_end', 'font_body', 'font_heading',
     ];
 
@@ -74,6 +74,17 @@ class SiteSetting extends Model
             'YouTube' => $this->youtube_url,
             'TikTok' => $this->tiktok_url,
         ]);
+    }
+
+    /**
+     * Páginas que hay que seguir para recibir un premio de los juegos
+     * (Facebook e Instagram de Panel › Redes sociales). Vacío: sin requisito.
+     *
+     * @return array<string, string>
+     */
+    public function followLinks(): array
+    {
+        return array_filter(['Facebook' => $this->facebook_url, 'Instagram' => $this->instagram_url]);
     }
 
     /** @return list<string> */

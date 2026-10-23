@@ -133,7 +133,7 @@
                         'rounded-[50%_50%_38%_62%/60%_40%_60%_40%] col-span-2',
                     ];
                 @endphp
-                <div class="grid grid-cols-4 grid-rows-3 gap-3 sm:gap-4">
+                <div class="grid grid-cols-4 grid-rows-2 gap-3 sm:gap-4">
                     @foreach ($gallery as $image)
                         <div @class(['overflow-hidden bg-primary/10 shadow-lg', $shapes[$loop->index]])>
                             <img src="{{ $image['url'] }}" alt="{{ $image['alt'] }}" class="size-full min-h-28 object-cover" loading="lazy" decoding="async">
@@ -197,6 +197,29 @@
             </ol>
         </div>
     </section>
+
+    {{-- ===== 4b. Aprende jugando: juegos bíblicos (mismo fondo que la sección anterior) ===== --}}
+    @if ($games->isNotEmpty())
+        <section class="bg-sand pb-20 sm:pb-28" aria-labelledby="juegos-titulo">
+            <div class="container-content">
+                <div class="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+                    <div>
+                        <x-ui.section-label>Aprende jugando</x-ui.section-label>
+                        <h2 id="juegos-titulo" class="mt-3 text-3xl leading-tight font-bold sm:text-4xl">Juegos bíblicos</h2>
+                        <p class="mt-2 max-w-xl text-muted">Crucigramas, trivias y rompecabezas para aprender la Palabra solo, en familia o en la escuela dominical.</p>
+                    </div>
+                    <a href="{{ route('games.index') }}" class="inline-flex min-h-11 shrink-0 items-center gap-2 self-start rounded-full bg-primary px-6 text-sm font-semibold text-white transition hover:bg-brand-strong sm:self-auto">
+                        Ver todos los juegos <x-ui.icon name="arrow-right" class="size-4" />
+                    </a>
+                </div>
+                <ul class="mt-8 grid grid-cols-2 gap-3 sm:grid-cols-3 sm:gap-4 lg:grid-cols-6">
+                    @foreach ($games as $game)
+                        <li>@include('games.partials.card', ['game' => $game, 'compact' => true])</li>
+                    @endforeach
+                </ul>
+            </div>
+        </section>
+    @endif
 
     {{-- ===== 5. Enseñanzas recientes (sección oscura con tarjetas de imagen) ===== --}}
     @if ($teachings->isNotEmpty())

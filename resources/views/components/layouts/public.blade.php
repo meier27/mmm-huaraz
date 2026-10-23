@@ -15,6 +15,8 @@
         ['url' => route('about'), 'label' => 'Nosotros', 'icon' => 'users', 'active' => 'about'],
         ['url' => route('teachings.index'), 'label' => 'Enseñanzas', 'icon' => 'list', 'active' => 'teachings.*'],
         ['url' => route('bible.index'), 'label' => 'Biblia', 'icon' => 'book', 'active' => 'bible.*'],
+        ['url' => route('doctrine'), 'label' => 'Doctrina', 'icon' => 'shield', 'active' => 'doctrine'],
+        ['url' => route('games.index'), 'label' => 'Juegos', 'icon' => 'puzzle', 'active' => 'games.*'],
         ['url' => route('events.index'), 'label' => 'Eventos', 'icon' => 'calendar', 'active' => 'events.*'],
         ['url' => route('bethel'), 'label' => 'Bethel TV', 'icon' => 'tv', 'active' => 'bethel'],
         ['url' => route('contact'), 'label' => 'Contacto', 'icon' => 'chat', 'active' => 'contact'],
@@ -32,7 +34,7 @@
         'Palabra' => array_merge(
             [['url' => route('teachings.index'), 'label' => 'Todas las enseñanzas']],
             array_map(fn ($c) => ['url' => route('teachings.index', ['categoria' => $c->value]), 'label' => $c->label()], \App\Enums\TeachingCategory::cases()),
-            [['url' => route('bible.index'), 'label' => 'Leer la Biblia']],
+            [['url' => route('doctrine'), 'label' => 'Doctrinario del MMM', 'strong' => true], ['url' => route('bible.index'), 'label' => 'Leer la Biblia'], ['url' => route('games.index'), 'label' => 'Juegos bíblicos']],
         ),
         'Eventos' => array_merge(
             [['url' => route('events.index'), 'label' => 'Agenda de eventos']],
@@ -106,10 +108,13 @@
             :class="overlay && (open || scrolled) ? 'bg-primary-deep shadow-lg' : (overlay ? 'bg-linear-to-b from-black/45 to-transparent' : '')">
         <div class="container-content flex items-center justify-between gap-4 transition-[height] duration-300"
              :class="scrolled && ! open ? 'h-20' : 'h-24 sm:h-28'">
-            <a href="{{ route('home') }}" class="flex items-center gap-4">
+            {{-- Móvil: «Huaraz» debajo del logo (al lado no caben las redes); desde sm, al lado. --}}
+            <a href="{{ route('home') }}" class="flex shrink-0 flex-col items-start gap-1 sm:flex-row sm:items-center sm:gap-4">
                 <img src="{{ asset('images/logo-mmm-peru.png') }}" alt="Movimiento Misionero Mundial Perú" width="800" height="251"
-                     class="w-auto transition-[height] duration-300" :class="scrolled && ! open ? 'h-11 sm:h-12' : 'h-12 sm:h-16'">
-                <span class="hidden border-s border-white/40 ps-4 font-display text-xl font-bold tracking-wide sm:block">Huaraz</span>
+                     class="w-auto transition-[height] duration-300" :class="scrolled && ! open ? 'h-9 sm:h-12' : 'h-10 sm:h-16'">
+                <span class="flex items-center gap-2 font-display text-sm leading-none font-bold tracking-[0.25em] uppercase sm:border-s sm:border-white/40 sm:ps-4 sm:text-xl sm:tracking-wide sm:normal-case">
+                    <span class="h-px w-4 bg-accent-light sm:hidden" aria-hidden="true"></span>Huaraz
+                </span>
             </a>
 
             <div class="flex items-center gap-2 sm:gap-3">
@@ -161,7 +166,7 @@
              class="fixed inset-x-0 top-24 bottom-0 overflow-y-auto border-t border-white/10 bg-primary-deep sm:top-28">
             <div class="container-content py-10">
                 {{-- Accesos principales --}}
-                <ul class="mb-10 grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-6">
+                <ul class="mb-10 grid grid-cols-2 gap-2 sm:grid-cols-4">
                     @foreach ($navigation as $item)
                         @php
                             $current = request()->routeIs($item['active']);

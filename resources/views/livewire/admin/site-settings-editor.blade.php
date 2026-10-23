@@ -27,9 +27,11 @@
             <a href="{{ route('admin.social') }}" wire:navigate class="font-semibold text-brand-strong underline">Redes sociales</a>.
         </p>
 
-        <h3 class="pt-2 font-display font-bold text-primary sm:col-span-2">Biblia y Bethel TV</h3>
+        <h3 class="pt-2 font-display font-bold text-primary sm:col-span-2">Biblia, doctrina y Bethel TV</h3>
         <x-admin.select label="Versión de la Biblia" model="form.bible_version" :options="$versions" />
         <x-admin.input label="Canal de YouTube de Bethel TV (id)" model="form.bethel_channel_id" hint="Vacío = canal oficial @Betheloficial." />
+        <x-admin.textarea label="Doctrinario (FlipHTML5)" model="form.doctrine_book_url" rows="2" class="sm:col-span-2"
+                          hint="Pega el enlace del libro o el código para insertar que da FlipHTML5; se guarda solo el enlace. Vacío = Doctrinario oficial del MMM." />
         <p class="text-xs text-muted sm:col-span-2">
             La Reina-Valera 1909 es de dominio público. Las otras versiones tienen derechos reservados: úsalas solo si la iglesia cuenta con autorización.
         </p>

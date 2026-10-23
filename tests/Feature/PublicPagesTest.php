@@ -36,11 +36,14 @@ class PublicPagesTest extends TestCase
             'biblia' => ['/biblia'],
             'eventos' => ['/eventos'],
             'bethel' => ['/bethel-tv'],
+            'doctrina' => ['/doctrina'],
             'convencion' => ['/eventos/convencion-nacional-2026'],
             'programa' => ['/eventos/convencion-nacional-2026/programa'],
             'sede' => ['/eventos/convencion-nacional-2026/sede'],
             'donaciones' => ['/eventos/convencion-nacional-2026/donaciones'],
             'contacto' => ['/contacto'],
+            'juegos' => ['/juegos'],
+            'trivia' => ['/juegos/trivia'],
         ];
     }
 
@@ -75,7 +78,8 @@ class PublicPagesTest extends TestCase
         ProgramItem::create(['program_day_id' => $day->id, 'starts_at' => '19:00', 'title' => 'Culto de apertura', 'is_published' => true]);
         ProgramItem::create(['program_day_id' => $day->id, 'starts_at' => '21:00', 'title' => 'Actividad en borrador', 'is_published' => false]);
 
-        $this->get('/eventos/convencion-nacional-2026/programa')
+        // Ese día explícito: sin «?dia=», la página abre en el día de hoy durante la convención.
+        $this->get('/eventos/convencion-nacional-2026/programa?dia='.$day->date->toDateString())
             ->assertSee('Culto de apertura')
             ->assertSee('19:00')
             ->assertDontSee('Actividad en borrador');

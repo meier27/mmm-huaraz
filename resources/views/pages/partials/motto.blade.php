@@ -2,7 +2,7 @@
     Lema del año (Panel › Lemas): tarjeta de tamaño medio con la imagen oficial
     a un lado. Requiere $motto.
 --}}
-<article id="lema" class="mx-auto mt-16 max-w-5xl scroll-mt-28 overflow-hidden rounded-card bg-white/80 shadow-[0_24px_50px_-30px_rgb(57_49_45/0.45)] ring-1 ring-sand-dark sm:flex" aria-labelledby="lema-titulo">
+<article id="lema" class="mx-auto mt-12 max-w-5xl sm:mt-16 scroll-mt-28 overflow-hidden rounded-card bg-white/80 shadow-[0_24px_50px_-30px_rgb(57_49_45/0.45)] ring-1 ring-sand-dark sm:flex" aria-labelledby="lema-titulo">
     @if ($motto->imageUrl())
         <img src="{{ $motto->imageUrl() }}" alt="{{ $motto->image_alt ?? '' }}" width="320" height="350"
              class="h-52 w-full object-cover sm:h-auto sm:w-72 sm:shrink-0 lg:w-80" loading="lazy" decoding="async">

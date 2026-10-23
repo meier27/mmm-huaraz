@@ -15,7 +15,7 @@ export default defineConfig({
     base: './',
     plugins: [
         laravel({
-            input: ['resources/css/app.css', 'resources/js/reveal.js'],
+            input: ['resources/css/app.css', 'resources/js/reveal.js', 'resources/js/games.js'],
             refresh: true,
         }),
         tailwindcss(),

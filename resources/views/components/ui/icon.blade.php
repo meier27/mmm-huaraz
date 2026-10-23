@@ -73,6 +73,43 @@
         @case('search')
             <circle cx="11" cy="11" r="6.5" /><path d="m20 20-4.4-4.4" />
             @break
+        @case('zoom-in')
+            <circle cx="11" cy="11" r="6.5" /><path d="m20 20-4.4-4.4M11 8v6M8 11h6" />
+            @break
+        @case('zoom-out')
+            <circle cx="11" cy="11" r="6.5" /><path d="m20 20-4.4-4.4M8 11h6" />
+            @break
+        @case('grid')
+            <rect x="4" y="4" width="6.5" height="6.5" rx="1" /><rect x="13.5" y="4" width="6.5" height="6.5" rx="1" /><rect x="4" y="13.5" width="6.5" height="6.5" rx="1" /><rect x="13.5" y="13.5" width="6.5" height="6.5" rx="1" />
+            @break
+        {{-- Juegos --}}
+        @case('puzzle')
+            <path d="M5 8.5h3.2a2 2 0 1 1 3.6 0H15v3.3a2 2 0 1 1 0 3.6V19H5v-3.6a2 2 0 1 0 0-3.6z" />
+            @break
+        @case('trophy')
+            <path d="M8 4.5h8v5a4 4 0 0 1-8 0zM8 6.5H5a2.5 2.5 0 0 0 3 3.4M16 6.5h3a2.5 2.5 0 0 1-3 3.4M12 13.5V17M8.5 20h7M9.5 17h5v3h-5z" />
+            @break
+        @case('refresh')
+            <path d="M19.5 12a7.5 7.5 0 1 1-2.2-5.3M19.5 4.5v4h-4" />
+            @break
+        @case('bulb')
+            <path d="M9 17.5h6M10 20.5h4M12 3.5a6 6 0 0 0-3.5 10.9c.6.5 1 1.2 1 2V17h5v-.6c0-.8.4-1.5 1-2A6 6 0 0 0 12 3.5z" />
+            @break
+        @case('lock')
+            <rect x="5" y="10.5" width="14" height="10" rx="2" /><path d="M8 10.5V8a4 4 0 0 1 8 0v2.5M12 14.5v2" />
+            @break
+        @case('share')
+            <circle cx="6" cy="12" r="2.5" /><circle cx="17.5" cy="6" r="2.5" /><circle cx="17.5" cy="18" r="2.5" /><path d="m8.2 10.8 7.1-3.6M8.2 13.2l7.1 3.6" />
+            @break
+        @case('copy')
+            <rect x="8.5" y="8.5" width="11" height="11" rx="2" /><path d="M15.5 8.5V6a1.5 1.5 0 0 0-1.5-1.5H6A1.5 1.5 0 0 0 4.5 6v8A1.5 1.5 0 0 0 6 15.5h2.5" />
+            @break
+        @case('eye')
+            <path d="M2.5 12S6 5.5 12 5.5 21.5 12 21.5 12 18 18.5 12 18.5 2.5 12 2.5 12z" /><circle cx="12" cy="12" r="3" />
+            @break
+        @case('fit')
+            <path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5" />
+            @break
         @case('users')
             <circle cx="9" cy="8" r="3.5" /><path d="M2.5 20c.5-3.6 3.2-6 6.5-6s6 2.4 6.5 6M16 4.6a3.5 3.5 0 0 1 0 6.8M18 14.3c2 .8 3.3 2.9 3.5 5.7" />
             @break

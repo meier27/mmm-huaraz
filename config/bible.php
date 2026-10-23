@@ -31,6 +31,9 @@ return [
     ],
 
     'bethel_channel_id' => 'UCMibkP6B0XmLUHgOwfTUIvQ',
+
+    // Doctrinario del MMM en FlipHTML5 (página «Doctrina»); se puede cambiar en Panel › Datos del sitio.
+    'doctrine_book_url' => 'https://online.fliphtml5.com/pscvh/Doctrinario-mmm/',
     'bethel_tv_url' => 'https://betheltv.tv/',
     'bethel_radio_url' => 'https://bethelradio.fm/',
 

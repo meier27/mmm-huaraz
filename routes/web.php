@@ -1,13 +1,21 @@
 <?php
 
 use App\Http\Controllers\Admin\DashboardController;
+use App\Http\Controllers\Admin\DoctrineBookController;
 use App\Http\Controllers\Admin\DonationReceiptController;
 use App\Http\Controllers\Auth\LoginController;
 use App\Http\Controllers\BibleController;
+use App\Http\Controllers\DoctrinePageController;
 use App\Http\Controllers\EventController;
+use App\Http\Controllers\Games\AccountController;
+use App\Http\Controllers\Games\ChallengeController;
+use App\Http\Controllers\Games\CommunityController;
+use App\Http\Controllers\Games\PlayController;
+use App\Http\Controllers\Games\PlayerAuthController;
 use App\Http\Controllers\SiteController;
 use App\Http\Controllers\TeachingController;
 use App\Livewire\Admin;
+use App\Services\GameCatalog;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -20,12 +28,61 @@ Route::controller(SiteController::class)->group(function () {
     Route::get('/', 'home')->name('home');
     Route::get('nosotros', 'about')->name('about');
     Route::get('bethel-tv', 'bethel')->name('bethel');
+    Route::get('doctrina', 'doctrine')->name('doctrine');
     Route::get('contacto', 'contact')->name('contact');
 });
+
+// Páginas del Doctrinario: solo con enlace firmado y vigente, y solo para este sitio.
+Route::get('doctrina/paginas/{book}/{page}', DoctrinePageController::class)
+    ->whereNumber(['book', 'page'])->middleware(['signed', 'throttle:240,1'])->name('doctrine.page');
 
 Route::controller(TeachingController::class)->prefix('ensenanzas')->name('teachings.')->group(function () {
     Route::get('/', 'index')->name('index');
     Route::get('{slug}', 'show')->name('show');
+});
+
+/*
+| Juegos bíblicos por niveles. Cuentas de jugadores: guard «player», separado
+| del panel. Las jugadas se comprueban en el servidor (games.move).
+*/
+Route::prefix('juegos')->group(function () {
+    Route::get('/', [PlayController::class, 'index'])->name('games.index');
+    Route::controller(CommunityController::class)->name('games.')->group(function () {
+        Route::get('ranking', 'ranking')->name('ranking');
+        Route::get('privacidad', 'privacy')->name('privacy');
+        Route::get('jugador/{nickname}', 'profile')->name('profile');
+    });
+
+    Route::controller(PlayerAuthController::class)->middleware('guest:player')->name('player.')->group(function () {
+        Route::get('registro', 'create')->name('register');
+        Route::post('registro', 'store')->middleware('throttle:login');
+        Route::get('ingresar', 'login')->name('login');
+        Route::post('ingresar', 'authenticate')->middleware('throttle:login');
+        Route::get('recuperar', 'forgot')->name('password.request');
+        Route::post('recuperar', 'sendResetLink')->middleware('throttle:6,1')->name('password.email');
+        Route::get('restablecer/{token}', 'resetForm')->name('password.reset');
+        Route::post('restablecer', 'reset')->middleware('throttle:login')->name('password.update');
+    });
+
+    Route::middleware('auth:player')->group(function () {
+        Route::post('salir', [PlayerAuthController::class, 'logout'])->name('player.logout');
+        Route::controller(AccountController::class)->name('games.')->group(function () {
+            Route::get('mi-avance', 'show')->name('account');
+            Route::put('mi-avance', 'update')->name('account.update');
+            Route::delete('mi-avance', 'destroy')->name('account.destroy');
+            Route::post('premios/{prize}/reclamar', 'claim')->middleware('throttle:10,1')->name('claim');
+        });
+        Route::controller(ChallengeController::class)->name('games.')->group(function () {
+            Route::post('reto-del-dia', 'answer')->middleware('throttle:10,1')->name('daily');
+            Route::post('canjes/{claim}/sigo-las-paginas', 'declareFollow')->middleware('throttle:10,1')->name('follow');
+        });
+    });
+
+    Route::controller(PlayController::class)->name('games.')->group(function () {
+        Route::post('partida/{attempt}', 'move')->middleware('throttle:240,1')->name('move');
+        Route::get('{game}', 'levels')->whereIn('game', array_keys(GameCatalog::GAMES))->name('levels');
+        Route::get('{game}/nivel/{level}', 'play')->whereIn('game', array_keys(GameCatalog::GAMES))->whereNumber('level')->name('play');
+    });
 });
 
 Route::controller(BibleController::class)->prefix('biblia')->name('bible.')->group(function () {
@@ -88,6 +145,19 @@ Route::middleware(['auth', 'can:access-admin'])->prefix('admin')->name('admin.')
         Route::get('nosotros', Admin\AboutBlockManager::class)->name('about');
         Route::get('lideres', Admin\LeaderManager::class)->name('leaders');
         Route::get('preguntas', Admin\FaqManager::class)->name('faqs');
+        Route::get('juegos', Admin\GameItemManager::class)->name('games');
+        Route::get('juegos/premios', Admin\PrizeManager::class)->name('prizes');
+        Route::get('juegos/canjes', Admin\PrizeClaimIndex::class)->name('claims');
+        Route::get('juegos/jugadores', Admin\PlayerIndex::class)->name('players');
+        Route::get('juegos/ranking-semanal', Admin\WeeklyRankingManager::class)->name('weekly');
+        Route::controller(DoctrineBookController::class)->prefix('doctrinario')->name('doctrine')->group(function () {
+            Route::get('/', 'index');
+            Route::post('/', 'store')->name('.store');
+            Route::put('{book}', 'update')->name('.update');
+            Route::post('{book}/procesar', 'reprocess')->name('.reprocess');
+            Route::post('{book}/indice', 'detectIndex')->name('.index');
+            Route::delete('{book}', 'destroy')->name('.destroy');
+        });
         Route::get('donaciones', Admin\DonationMethodManager::class)->name('donation-methods');
 
         // Eventos y sus módulos

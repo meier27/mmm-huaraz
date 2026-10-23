@@ -25,10 +25,18 @@
             ['route' => 'admin.media', 'label' => 'Medios', 'icon' => 'tv', 'can' => 'manage-content'],
             ['route' => 'admin.mottos', 'label' => 'Lemas', 'icon' => 'star', 'can' => 'manage-content'],
             ['route' => 'admin.teachings', 'label' => 'Enseñanzas', 'icon' => 'book', 'can' => 'manage-content'],
+            ['route' => 'admin.doctrine', 'label' => 'Doctrinario', 'icon' => 'shield', 'can' => 'manage-content'],
             ['route' => 'admin.verses', 'label' => 'Versículos', 'icon' => 'quote', 'can' => 'manage-content'],
             ['route' => 'admin.about', 'label' => 'Página «Nosotros»', 'icon' => 'info', 'can' => 'manage-content'],
             ['route' => 'admin.leaders', 'label' => 'Líderes', 'icon' => 'users', 'can' => 'manage-content'],
             ['route' => 'admin.faqs', 'label' => 'Preguntas', 'icon' => 'help', 'can' => 'manage-content'],
+        ],
+        'Juegos' => [
+            ['route' => 'admin.games', 'label' => 'Preguntas y palabras', 'icon' => 'puzzle', 'can' => 'manage-content'],
+            ['route' => 'admin.weekly', 'label' => 'Ranking semanal', 'icon' => 'star', 'can' => 'manage-content'],
+            ['route' => 'admin.prizes', 'label' => 'Premios', 'icon' => 'trophy', 'can' => 'manage-content'],
+            ['route' => 'admin.claims', 'label' => 'Canjes', 'icon' => 'check', 'can' => 'manage-content', 'badge' => 'claims'],
+            ['route' => 'admin.players', 'label' => 'Jugadores', 'icon' => 'users', 'can' => 'manage-content'],
         ],
         'Eventos' => array_values(array_filter([
             ['route' => 'admin.events', 'label' => 'Todos los eventos', 'icon' => 'calendar', 'can' => 'manage-content', 'is_active' => $onEvents && ! $onFeatured],
@@ -44,6 +52,7 @@
 
     $badges = [
         'donations' => Gate::allows('manage-donations') ? \App\Models\Donation::query()->status(\App\Enums\DonationStatus::Pending)->count() : 0,
+        'claims' => Gate::allows('manage-content') ? \App\Models\PrizeClaim::query()->where('status', \App\Enums\ClaimStatus::Pending->value)->count() : 0,
     ];
     $user = auth()->user();
 @endphp

@@ -35,4 +35,7 @@ return [
         ],
     ],
 
+    // Convierte el Doctrinario (PDF) en imágenes. Poppler: «pdftoppm» o su ruta completa.
+    'pdftoppm' => env('PDFTOPPM_PATH', 'pdftoppm'),
+
 ];
